@@ -13,3 +13,8 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
+anyhow = "1.0.31"
+
+[dependencies.structopt]
+version = "0.3.15"
+default-features = false
