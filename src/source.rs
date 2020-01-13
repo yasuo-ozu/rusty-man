@@ -67,11 +67,7 @@ mod tests {
             );
         }
 
-        let doc = path::PathBuf::from("./target/doc");
-        assert!(
-            doc.is_dir(),
-            "You have to run `cargo doc` before running this test case."
-        );
+        let doc = crate::tests::ensure_docs();
 
         let source = super::DirSource::new(doc.clone());
 

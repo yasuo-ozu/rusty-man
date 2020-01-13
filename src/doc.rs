@@ -3,6 +3,8 @@
 
 use std::path;
 
+use crate::parser;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Crate {
     pub name: String,
@@ -27,14 +29,20 @@ impl Crate {
         Crate { name, path }
     }
 
-    pub fn find_item(&self, _item: &[&str]) -> anyhow::Result<Option<Item>> {
-        Ok(None)
+    pub fn find_item(&self, item: &[&str]) -> anyhow::Result<Option<Item>> {
+        let name = item.join("::");
+        parser::find_item(self.path.join("all.html"), &name)
+            .map(|o| o.map(|s| Item::new(name, self.path.join(path::PathBuf::from(s)))))
     }
 }
 
 impl Item {
+    pub fn new(name: String, path: path::PathBuf) -> Self {
+        Item { path, name }
+    }
+
     pub fn load_doc(&self) -> anyhow::Result<Doc> {
-        Ok(Doc::new(self.name.clone()))
+        parser::parse_doc(&self.path)
     }
 }
 

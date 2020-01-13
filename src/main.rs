@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 mod doc;
+mod parser;
 mod source;
 
 use structopt::StructOpt;
@@ -58,4 +59,18 @@ fn find_crate(sources: &[Box<dyn source::Source>], name: &str) -> anyhow::Result
         .filter_map(|s| s.find_crate(name))
         .next()
         .with_context(|| format!("Could not find the crate {}", name))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path;
+
+    pub fn ensure_docs() -> path::PathBuf {
+        let doc = path::PathBuf::from("./target/doc");
+        assert!(
+            doc.is_dir(),
+            "You have to run `cargo doc` before running this test case."
+        );
+        doc
+    }
 }
