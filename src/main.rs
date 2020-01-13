@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
+mod doc;
+mod source;
+
 use structopt::StructOpt;
 
 /// Command-line interface for rustdoc documentation
@@ -19,6 +22,40 @@ struct Opt {
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
-    println!("Documentation for {}", &opt.keyword);
+
+    let sources = load_sources(&opt.source_paths)?;
+    let doc = find_doc(&sources, &opt.keyword)?;
+    println!("{}", doc.title);
     Ok(())
+}
+
+fn load_sources(sources: &[String]) -> anyhow::Result<Vec<Box<dyn source::Source>>> {
+    let mut vec: Vec<Box<dyn source::Source>> = Vec::new();
+    for s in sources {
+        vec.push(source::get_source(s)?);
+    }
+    // The last source should be searched first --> reverse source vector
+    vec.reverse();
+    Ok(vec)
+}
+
+fn find_doc(sources: &[Box<dyn source::Source>], keyword: &str) -> anyhow::Result<doc::Doc> {
+    use anyhow::Context;
+
+    let parts: Vec<&str> = keyword.split("::").collect();
+    let crate_ = find_crate(sources, parts[0])?;
+    let item = crate_
+        .find_item(&parts[1..])?
+        .with_context(|| format!("Could not find the item {}", keyword))?;
+    item.load_doc()
+}
+
+fn find_crate(sources: &[Box<dyn source::Source>], name: &str) -> anyhow::Result<doc::Crate> {
+    use anyhow::Context;
+
+    sources
+        .iter()
+        .filter_map(|s| s.find_crate(name))
+        .next()
+        .with_context(|| format!("Could not find the crate {}", name))
 }
