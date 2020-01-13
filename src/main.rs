@@ -5,6 +5,8 @@ mod doc;
 mod parser;
 mod source;
 
+use std::path;
+
 use structopt::StructOpt;
 
 /// Command-line interface for rustdoc documentation
@@ -19,24 +21,52 @@ struct Opt {
     /// crates in subdirectories.
     #[structopt(name = "source", short, long, number_of_values = 1)]
     source_paths: Vec<String>,
+
+    /// Do not search the default documentation sources
+    ///
+    /// If this option is not set, rusty-man appends `/usr/share/doc/rust{,-doc}/html` and
+    /// `target/doc` directory to the list of sources if they exist.
+    #[structopt(long)]
+    no_default_sources: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
 
-    let sources = load_sources(&opt.source_paths)?;
+    let sources = load_sources(&opt.source_paths, !opt.no_default_sources)?;
     let doc = find_doc(&sources, &opt.keyword)?;
     println!("{}", doc.title);
     Ok(())
 }
 
-fn load_sources(sources: &[String]) -> anyhow::Result<Vec<Box<dyn source::Source>>> {
+const DEFAULT_SOURCES: &[&str] = &[
+    "/usr/share/doc/rust/html",
+    "/usr/share/doc/rust-doc/html",
+    "./target/doc",
+];
+
+fn load_sources(
+    sources: &[String],
+    load_default_sources: bool,
+) -> anyhow::Result<Vec<Box<dyn source::Source>>> {
     let mut vec: Vec<Box<dyn source::Source>> = Vec::new();
+
+    if load_default_sources {
+        for s in DEFAULT_SOURCES {
+            let path: &path::Path = s.as_ref();
+            if path.is_dir() {
+                vec.push(source::get_source(path)?);
+            }
+        }
+    }
+
     for s in sources {
         vec.push(source::get_source(s)?);
     }
+
     // The last source should be searched first --> reverse source vector
     vec.reverse();
+
     Ok(vec)
 }
 
