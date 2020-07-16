@@ -5,6 +5,7 @@ mod rich;
 mod text;
 
 use std::fmt;
+use std::io;
 
 use crate::doc;
 
@@ -17,5 +18,13 @@ pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
         "rich" => Ok(Box::new(rich::RichViewer::new())),
         "text" => Ok(Box::new(text::TextViewer::new())),
         _ => Err(anyhow::anyhow!("The viewer {} is not supported", s)),
+    }
+}
+
+pub fn get_default() -> Box<dyn Viewer> {
+    if termion::is_tty(&io::stdout()) {
+        Box::new(rich::RichViewer::new())
+    } else {
+        Box::new(text::TextViewer::new())
     }
 }

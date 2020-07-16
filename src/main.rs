@@ -24,8 +24,8 @@ struct Opt {
     source_paths: Vec<String>,
 
     /// The viewer for the rustdoc documentation
-    #[structopt(long, default_value = "text", parse(try_from_str = viewer::get_viewer))]
-    viewer: Box<dyn viewer::Viewer>,
+    #[structopt(long, parse(try_from_str = viewer::get_viewer))]
+    viewer: Option<Box<dyn viewer::Viewer>>,
 
     /// Do not search the default documentation sources
     ///
@@ -40,7 +40,8 @@ fn main() -> anyhow::Result<()> {
 
     let sources = load_sources(&opt.source_paths, !opt.no_default_sources)?;
     let doc = find_doc(&sources, &opt.keyword)?;
-    opt.viewer.open(&doc)
+    let viewer = opt.viewer.unwrap_or_else(viewer::get_default);
+    viewer.open(&doc)
 }
 
 const DEFAULT_SOURCES: &[&str] = &[
