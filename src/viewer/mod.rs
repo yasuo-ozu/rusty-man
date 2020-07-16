@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
+mod rich;
 mod text;
 
 use std::fmt;
@@ -13,6 +14,7 @@ pub trait Viewer: fmt::Debug {
 
 pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
     match s.to_lowercase().as_ref() {
+        "rich" => Ok(Box::new(rich::RichViewer::new())),
         "text" => Ok(Box::new(text::TextViewer::new())),
         _ => Err(anyhow::anyhow!("The viewer {} is not supported", s)),
     }
