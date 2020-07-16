@@ -4,6 +4,7 @@
 mod doc;
 mod parser;
 mod source;
+mod viewer;
 
 use std::path;
 
@@ -22,6 +23,10 @@ struct Opt {
     #[structopt(name = "source", short, long, number_of_values = 1)]
     source_paths: Vec<String>,
 
+    /// The viewer for the rustdoc documentation
+    #[structopt(long, default_value = "text", parse(try_from_str = viewer::get_viewer))]
+    viewer: Box<dyn viewer::Viewer>,
+
     /// Do not search the default documentation sources
     ///
     /// If this option is not set, rusty-man appends `/usr/share/doc/rust{,-doc}/html` and
@@ -35,8 +40,7 @@ fn main() -> anyhow::Result<()> {
 
     let sources = load_sources(&opt.source_paths, !opt.no_default_sources)?;
     let doc = find_doc(&sources, &opt.keyword)?;
-    println!("{}", doc.title);
-    Ok(())
+    opt.viewer.open(&doc)
 }
 
 const DEFAULT_SOURCES: &[&str] = &[

@@ -14,6 +14,7 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1.0.31"
+html2text = "0.1.12"
 kuchiki = "0.8.0"
 
 [dependencies.structopt]
