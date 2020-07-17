@@ -34,6 +34,18 @@ impl Crate {
         parser::find_item(self.path.join("all.html"), &name)
             .map(|o| o.map(|s| Item::new(name, self.path.join(path::PathBuf::from(s)))))
     }
+
+    pub fn find_module(&self, item: &[&str]) -> Option<Item> {
+        let path = self
+            .path
+            .join(path::PathBuf::from(item.join("/")))
+            .join("index.html");
+        if path.is_file() {
+            Some(Item::new(item.join("::"), path))
+        } else {
+            None
+        }
+    }
 }
 
 impl Item {

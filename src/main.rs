@@ -82,6 +82,7 @@ fn find_doc(sources: &[Box<dyn source::Source>], keyword: &str) -> anyhow::Resul
     let crate_ = find_crate(sources, parts[0])?;
     let item = crate_
         .find_item(&parts[1..])?
+        .or_else(|| crate_.find_module(&parts[1..]))
         .with_context(|| format!("Could not find the item {}", keyword))?;
     item.load_doc()
 }
@@ -100,6 +101,8 @@ fn find_crate(sources: &[Box<dyn source::Source>], name: &str) -> anyhow::Result
 mod tests {
     use std::path;
 
+    use crate::source;
+
     pub fn ensure_docs() -> path::PathBuf {
         let doc = path::PathBuf::from("./target/doc");
         assert!(
@@ -107,5 +110,17 @@ mod tests {
             "You have to run `cargo doc` before running this test case."
         );
         doc
+    }
+
+    #[test]
+    fn test_find_doc() {
+        let path = ensure_docs();
+        let sources = vec![source::get_source(path).unwrap()];
+
+        super::find_doc(&sources, "kuchiki").unwrap();
+        super::find_doc(&sources, "kuchiki::NodeRef").unwrap();
+        super::find_doc(&sources, "kuchiki::traits").unwrap();
+        super::find_doc(&sources, "kachiki").unwrap_err();
+        super::find_doc(&sources, "kuchiki::NodeDataRef::as_node").unwrap_err();
     }
 }
