@@ -83,6 +83,7 @@ fn find_doc(sources: &[Box<dyn source::Source>], keyword: &str) -> anyhow::Resul
     let item = crate_
         .find_item(&parts[1..])?
         .or_else(|| crate_.find_module(&parts[1..]))
+        .or_else(|| crate_.find_member(&parts[1..]))
         .with_context(|| format!("Could not find the item {}", keyword))?;
     item.load_doc()
 }
@@ -119,8 +120,8 @@ mod tests {
 
         super::find_doc(&sources, "kuchiki").unwrap();
         super::find_doc(&sources, "kuchiki::NodeRef").unwrap();
+        super::find_doc(&sources, "kuchiki::NodeDataRef::as_node").unwrap();
         super::find_doc(&sources, "kuchiki::traits").unwrap();
         super::find_doc(&sources, "kachiki").unwrap_err();
-        super::find_doc(&sources, "kuchiki::NodeDataRef::as_node").unwrap_err();
     }
 }

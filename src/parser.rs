@@ -37,16 +37,9 @@ pub fn find_item<P: AsRef<path::Path>>(path: P, item: &str) -> anyhow::Result<Op
     Ok(item)
 }
 
-pub fn parse_doc<P: AsRef<path::Path>>(path: P) -> anyhow::Result<doc::Doc> {
+pub fn find_member<P: AsRef<path::Path>>(path: P, item: &str) -> anyhow::Result<bool> {
     let document = parse_file(path)?;
-    let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
-    let definition = select_first(&document, ".docblock.type-decl")?;
-    let description = select_first(&document, ".docblock:not(.type-decl)")?;
-
-    let mut doc = doc::Doc::new(get_html(heading.as_node())?);
-    doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
-    doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
-    Ok(doc)
+    Ok(get_member(&document, item)?.is_some())
 }
 
 fn select(
@@ -64,6 +57,49 @@ fn select_first(
     selector: &str,
 ) -> anyhow::Result<Option<kuchiki::NodeDataRef<kuchiki::ElementData>>> {
     select(element, selector).map(|mut i| i.next())
+}
+
+pub fn parse_item_doc<P: AsRef<path::Path>>(path: P) -> anyhow::Result<doc::Doc> {
+    let document = parse_file(path)?;
+    let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
+    let definition = select_first(&document, ".docblock.type-decl")?;
+    let description = select_first(&document, ".docblock:not(.type-decl)")?;
+
+    let mut doc = doc::Doc::new(get_html(heading.as_node())?);
+    doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
+    doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
+    Ok(doc)
+}
+
+pub fn parse_member_doc<P: AsRef<path::Path>>(
+    path: P,
+    item: &str,
+    name: &str,
+) -> anyhow::Result<doc::Doc> {
+    let document = parse_file(path)?;
+    let member =
+        get_member(&document, name)?.with_context(|| format!("Could not find member {}", name))?;
+    let heading = member
+        .as_node()
+        .parent()
+        .with_context(|| format!("The member {} does not have a parent", name))?;
+    let docblock = heading.next_sibling();
+
+    let mut doc = doc::Doc::new(format!("{}::{}", item, name));
+    doc.definition = Some(get_html(member.as_node())?);
+    doc.description = docblock.map(|n| get_html(&n)).transpose()?;
+    Ok(doc)
+}
+
+fn get_member(
+    document: &kuchiki::NodeRef,
+    name: &str,
+) -> anyhow::Result<Option<kuchiki::NodeDataRef<kuchiki::ElementData>>> {
+    document
+        .select(&format!("#{}\\.v", name))
+        .ok()
+        .context("Could not select member by id")
+        .map(|mut i| i.next())
 }
 
 fn get_attribute(element: &kuchiki::ElementData, name: &str) -> Option<String> {
@@ -90,10 +126,10 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_doc_struct() {
+    fn test_parse_item_doc() {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeRef.html");
-        let doc = super::parse_doc(&path).unwrap();
+        let doc = super::parse_item_doc(&path).unwrap();
 
         assert_eq!(
             "<span class=\"in-band\">\
@@ -103,6 +139,23 @@ mod tests {
             &doc.title
         );
         assert!(doc.definition.is_some());
+        assert!(doc.description.is_some());
+    }
+
+    #[test]
+    fn test_parse_member_doc() {
+        let path = crate::tests::ensure_docs();
+        let path = path.join("kuchiki").join("struct.NodeDataRef.html");
+        let doc = super::parse_member_doc(&path, "kuchiki::NodeDataRef", "as_node").unwrap();
+
+        assert_eq!("kuchiki::NodeDataRef::as_node", &doc.title);
+        assert_eq!(
+            "<code id=\"as_node.v\">\
+             pub fn <a class=\"fnname\" href=\"#method.as_node\">as_node</a>(&amp;self) \
+             -&gt; &amp;<a class=\"struct\" href=\"../kuchiki/struct.NodeRef.html\" \
+             title=\"struct kuchiki::NodeRef\">NodeRef</a></code>",
+            &doc.definition.unwrap()
+        );
         assert!(doc.description.is_some());
     }
 }
