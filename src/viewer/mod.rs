@@ -4,6 +4,7 @@
 mod rich;
 mod text;
 
+use std::cmp;
 use std::fmt;
 use std::io;
 
@@ -26,5 +27,17 @@ pub fn get_default() -> Box<dyn Viewer> {
         Box::new(rich::RichViewer::new())
     } else {
         Box::new(text::TextViewer::new())
+    }
+}
+
+pub fn spawn_pager() {
+    pager::Pager::with_default_pager("less -cr").setup()
+}
+
+pub fn get_line_length() -> usize {
+    if let Ok((cols, _)) = termion::terminal_size() {
+        cmp::min(cols.into(), 100)
+    } else {
+        100
     }
 }

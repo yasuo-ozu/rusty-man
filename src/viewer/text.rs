@@ -7,7 +7,9 @@ use crate::doc;
 use crate::viewer;
 
 #[derive(Clone, Debug)]
-pub struct TextViewer {}
+pub struct TextViewer {
+    line_length: usize,
+}
 
 struct Decorator {
     links: Vec<String>,
@@ -16,13 +18,15 @@ struct Decorator {
 
 impl TextViewer {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            line_length: viewer::get_line_length(),
+        }
     }
 
     fn print(&self, s: &str) {
         println!(
             "{}",
-            html2text::from_read_with_decorator(s.as_bytes(), 100, Decorator::new())
+            html2text::from_read_with_decorator(s.as_bytes(), self.line_length, Decorator::new())
         );
     }
 
@@ -35,6 +39,8 @@ impl TextViewer {
 
 impl viewer::Viewer for TextViewer {
     fn open(&self, doc: &doc::Doc) -> anyhow::Result<()> {
+        viewer::spawn_pager();
+
         self.print(&doc.title);
         self.print_opt(doc.definition.as_deref());
         self.print_opt(doc.description.as_deref());

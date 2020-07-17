@@ -6,18 +6,22 @@ use html2text::render::text_renderer;
 use crate::doc;
 use crate::viewer;
 
-type TaggedString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>>;
+type RichString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>>;
 
 #[derive(Clone, Debug)]
-pub struct RichViewer {}
+pub struct RichViewer {
+    line_length: usize,
+}
 
 impl RichViewer {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            line_length: viewer::get_line_length(),
+        }
     }
 
     fn print(&self, s: &str) {
-        let lines = html2text::from_read_rich(s.as_bytes(), 100);
+        let lines = html2text::from_read_rich(s.as_bytes(), self.line_length);
         for line in lines {
             for element in line.iter() {
                 if let text_renderer::TaggedLineElement::Str(ts) = element {
@@ -41,7 +45,7 @@ impl RichViewer {
         print!("{}", termion::style::Reset);
     }
 
-    fn render_string(&self, ts: &TaggedString) {
+    fn render_string(&self, ts: &RichString) {
         let start_style = get_style(ts, get_start_style);
         let end_style = get_style(ts, get_end_style);
         print!("{}{}{}", start_style, ts.s, end_style);
@@ -50,6 +54,8 @@ impl RichViewer {
 
 impl viewer::Viewer for RichViewer {
     fn open(&self, doc: &doc::Doc) -> anyhow::Result<()> {
+        viewer::spawn_pager();
+
         self.print_heading(&doc.title, 1);
         self.print_opt(doc.definition.as_deref());
         self.print_opt(doc.description.as_deref());
@@ -57,7 +63,7 @@ impl viewer::Viewer for RichViewer {
     }
 }
 
-fn get_style<F>(ts: &TaggedString, f: F) -> String
+fn get_style<F>(ts: &RichString, f: F) -> String
 where
     F: Fn(&text_renderer::RichAnnotation) -> String,
 {
