@@ -10,6 +10,9 @@
 //! Note that the format of the search index changed in April 2020 with commit
 //! b4fb3069ce82f61f84a9487d17fb96389d55126a.  We only support the new format as the old format is
 //! much harder to parse.
+//!
+//! For details on the generation of the search index, see the `html/render/cache.rs` file in
+//! `librustdoc`.
 
 use std::collections;
 use std::fmt;
@@ -109,9 +112,10 @@ impl Index {
         let keyword = format!("::{}", keyword);
         let mut matches: Vec<IndexItem> = Vec::new();
         for (krate, data) in &self.data.crates {
+            let mut path = krate;
             for item in &data.items {
-                let path = if item.path.is_empty() {
-                    krate
+                path = if item.path.is_empty() {
+                    path
                 } else {
                     &item.path
                 };
