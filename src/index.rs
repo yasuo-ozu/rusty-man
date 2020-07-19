@@ -52,6 +52,8 @@ struct Data {
 struct CrateData {
     #[serde(rename = "i")]
     items: Vec<ItemData>,
+    #[serde(rename = "p")]
+    paths: Vec<(usize, String)>,
 }
 
 #[derive(Debug, Default, PartialEq, serde_tuple::Deserialize_tuple)]
@@ -119,11 +121,18 @@ impl Index {
                 } else {
                     &item.path
                 };
-                let full_name = format!("{}::{}", path, &item.name);
+                let full_path = match item.parent {
+                    Some(idx) => {
+                        let parent = &data.paths[idx].1;
+                        format!("{}::{}", path, parent)
+                    }
+                    None => path.to_owned(),
+                };
+                let full_name = format!("{}::{}", &full_path, &item.name);
                 if full_name.ends_with(&keyword) {
                     matches.push(IndexItem {
                         name: item.name.clone(),
-                        path: path.to_owned(),
+                        path: full_path,
                         description: item.desc.clone(),
                     });
                 }
@@ -152,7 +161,7 @@ mod tests {
         expected
             .crates
             .insert("test".to_owned(), Default::default());
-        let actual: Data = serde_json::from_str("{\"test\": {\"i\": []}}").unwrap();
+        let actual: Data = serde_json::from_str("{\"test\": {\"i\": [], \"p\": []}}").unwrap();
         assert_eq!(expected, actual);
     }
 
@@ -167,7 +176,7 @@ mod tests {
         krate.items.push(item);
         expected.crates.insert("test".to_owned(), krate);
         let actual: Data = serde_json::from_str(
-            "{\"test\": {\"i\": [[0, \"name\", \"path\", \"desc\", null, null]]}}",
+            "{\"test\": {\"i\": [[0, \"name\", \"path\", \"desc\", null, null]], \"p\": []}}",
         )
         .unwrap();
         assert_eq!(expected, actual);
