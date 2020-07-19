@@ -140,7 +140,10 @@ fn search_item(
     items.dedup();
 
     if items.is_empty() {
-        Ok(None)
+        Err(anyhow::anyhow!(
+            "Could not find documentation for {}",
+            &keyword
+        ))
     } else if items.len() == 1 {
         Ok(Some(items[0].clone()))
     } else {
