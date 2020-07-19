@@ -17,3 +17,7 @@ tasks:
   - test: |
       cd rusty-man
       cargo test
+triggers:
+  - action: email
+    condition: failure
+    to: robin.krahl@ireas.org

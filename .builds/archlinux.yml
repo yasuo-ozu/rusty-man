@@ -34,3 +34,7 @@ tasks:
   - format: |
       cd rusty-man
       cargo fmt -- --check
+triggers:
+  - action: email
+    condition: failure
+    to: robin.krahl@ireas.org
