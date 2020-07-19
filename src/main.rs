@@ -35,6 +35,14 @@ struct Opt {
     /// `target/doc` directory to the list of sources if they exist.
     #[structopt(long)]
     no_default_sources: bool,
+
+    /// Do not read the search index if there is no exact match
+    ///
+    /// Per default, rusty-man reads the search indexes of all sources and tries to find matching
+    /// items if there is no exact match for the keyword.  If this option is set, the search
+    /// indexes are not read.
+    #[structopt(long)]
+    no_search: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -42,8 +50,10 @@ fn main() -> anyhow::Result<()> {
     let sources = load_sources(&opt.source_paths, !opt.no_default_sources)?;
     let doc = if let Some(doc) = find_doc(&sources, &opt.keyword)? {
         Some(doc)
-    } else {
+    } else if !opt.no_search {
         search_doc(&sources, &opt.keyword)?
+    } else {
+        anyhow::bail!("Could not find documentation for {}", &opt.keyword);
     };
 
     if let Some(doc) = doc {
