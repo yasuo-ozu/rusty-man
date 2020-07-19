@@ -106,17 +106,20 @@ impl Index {
     }
 
     pub fn find(&self, keyword: &str) -> Vec<IndexItem> {
+        let keyword = format!("::{}", keyword);
         let mut matches: Vec<IndexItem> = Vec::new();
         for (krate, data) in &self.data.crates {
             for item in &data.items {
-                if item.name == keyword {
+                let path = if item.path.is_empty() {
+                    krate
+                } else {
+                    &item.path
+                };
+                let full_name = format!("{}::{}", path, &item.name);
+                if full_name.ends_with(&keyword) {
                     matches.push(IndexItem {
                         name: item.name.clone(),
-                        path: if item.path.is_empty() {
-                            krate.to_owned()
-                        } else {
-                            item.path.clone()
-                        },
+                        path: path.to_owned(),
                         description: item.desc.clone(),
                     });
                 }
