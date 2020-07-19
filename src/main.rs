@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 mod doc;
+mod index;
 mod parser;
 mod source;
 mod viewer;
 
+use std::io;
 use std::path;
 
 use structopt::StructOpt;
@@ -37,11 +39,20 @@ struct Opt {
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
-
     let sources = load_sources(&opt.source_paths, !opt.no_default_sources)?;
-    let doc = find_doc(&sources, &opt.keyword)?;
-    let viewer = opt.viewer.unwrap_or_else(viewer::get_default);
-    viewer.open(&doc)
+    let doc = if let Some(doc) = find_doc(&sources, &opt.keyword)? {
+        Some(doc)
+    } else {
+        search_doc(&sources, &opt.keyword)?
+    };
+
+    if let Some(doc) = doc {
+        let viewer = opt.viewer.unwrap_or_else(viewer::get_default);
+        viewer.open(&doc)
+    } else {
+        // item selection cancelled by user
+        Ok(())
+    }
 }
 
 const DEFAULT_SOURCES: &[&str] = &[
@@ -75,27 +86,98 @@ fn load_sources(
     Ok(vec)
 }
 
-fn find_doc(sources: &[Box<dyn source::Source>], keyword: &str) -> anyhow::Result<doc::Doc> {
-    use anyhow::Context;
-
+fn find_doc(
+    sources: &[Box<dyn source::Source>],
+    keyword: &str,
+) -> anyhow::Result<Option<doc::Doc>> {
     let parts: Vec<&str> = keyword.split("::").collect();
-    let crate_ = find_crate(sources, parts[0])?;
-    let item = crate_
-        .find_item(&parts[1..])?
-        .or_else(|| crate_.find_module(&parts[1..]))
-        .or_else(|| crate_.find_member(&parts[1..]))
-        .with_context(|| format!("Could not find the item {}", keyword))?;
-    item.load_doc()
+    if let Some(crate_) = find_crate(sources, parts[0]) {
+        crate_
+            .find_item(&parts[1..])?
+            .or_else(|| crate_.find_module(&parts[1..]))
+            .or_else(|| crate_.find_member(&parts[1..]))
+            .map(|i| i.load_doc())
+            .transpose()
+    } else {
+        Ok(None)
+    }
 }
 
-fn find_crate(sources: &[Box<dyn source::Source>], name: &str) -> anyhow::Result<doc::Crate> {
-    use anyhow::Context;
+fn find_crate(sources: &[Box<dyn source::Source>], name: &str) -> Option<doc::Crate> {
+    sources.iter().filter_map(|s| s.find_crate(name)).next()
+}
 
-    sources
+fn search_doc(
+    sources: &[Box<dyn source::Source>],
+    keyword: &str,
+) -> anyhow::Result<Option<doc::Doc>> {
+    if let Some(item) = search_item(sources, keyword)? {
+        use anyhow::Context;
+
+        let item = format!("{}::{}", item.path, item.name);
+        let doc = find_doc(sources, &item)?
+            .with_context(|| format!("Could not find documentation for {}", &item))?;
+        Ok(Some(doc))
+    } else {
+        Ok(None)
+    }
+}
+
+fn search_item(
+    sources: &[Box<dyn source::Source>],
+    keyword: &str,
+) -> anyhow::Result<Option<index::IndexItem>> {
+    let indexes = sources
         .iter()
-        .filter_map(|s| s.find_crate(name))
-        .next()
-        .with_context(|| format!("Could not find the crate {}", name))
+        .filter_map(|s| s.load_index().transpose())
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    let mut items = indexes
+        .iter()
+        .map(|i| i.find(keyword))
+        .collect::<Vec<_>>()
+        .concat();
+    items.sort_unstable();
+    items.dedup();
+
+    if items.is_empty() {
+        Ok(None)
+    } else if items.len() == 1 {
+        Ok(Some(items[0].clone()))
+    } else {
+        select_item(&items, keyword)
+    }
+}
+
+fn select_item(
+    items: &[index::IndexItem],
+    keyword: &str,
+) -> anyhow::Result<Option<index::IndexItem>> {
+    use std::io::Write;
+
+    // If we are not on a TTY, we can’t ask the user to select an item --> abort
+    anyhow::ensure!(
+        termion::is_tty(&io::stdin()),
+        "Found multiple matches for {}",
+        keyword
+    );
+
+    println!("Found mulitple matches for {} – select one of:", keyword);
+    println!();
+    let width = (items.len() + 1).to_string().len();
+    for (i, item) in items.iter().enumerate() {
+        println!("[ {:width$} ] {}", i, &item, width = width);
+    }
+    println!();
+    print!("> ");
+    io::stdout().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    if let Ok(i) = usize::from_str_radix(input.trim(), 10) {
+        Ok(items.get(i).map(Clone::clone))
+    } else {
+        Ok(None)
+    }
 }
 
 #[cfg(test)]
@@ -118,10 +200,16 @@ mod tests {
         let path = ensure_docs();
         let sources = vec![source::get_source(path).unwrap()];
 
-        super::find_doc(&sources, "kuchiki").unwrap();
-        super::find_doc(&sources, "kuchiki::NodeRef").unwrap();
-        super::find_doc(&sources, "kuchiki::NodeDataRef::as_node").unwrap();
-        super::find_doc(&sources, "kuchiki::traits").unwrap();
-        super::find_doc(&sources, "kachiki").unwrap_err();
+        assert!(super::find_doc(&sources, "kuchiki").unwrap().is_some());
+        assert!(super::find_doc(&sources, "kuchiki::NodeRef")
+            .unwrap()
+            .is_some());
+        assert!(super::find_doc(&sources, "kuchiki::NodeDataRef::as_node")
+            .unwrap()
+            .is_some());
+        assert!(super::find_doc(&sources, "kuchiki::traits")
+            .unwrap()
+            .is_some());
+        assert!(super::find_doc(&sources, "kachiki").unwrap().is_none());
     }
 }

@@ -8,10 +8,12 @@ use std::path;
 use anyhow::anyhow;
 
 use crate::doc;
+use crate::index;
 
 /// Documentation source, for example a local directory.
 pub trait Source {
     fn find_crate(&self, name: &str) -> Option<doc::Crate>;
+    fn load_index(&self) -> anyhow::Result<Option<index::Index>>;
 }
 
 /// Local directory containing documentation data.
@@ -37,6 +39,15 @@ impl Source for DirSource {
             Some(doc::Crate::new(name.to_owned(), crate_path))
         } else {
             None
+        }
+    }
+
+    fn load_index(&self) -> anyhow::Result<Option<index::Index>> {
+        let index_path = self.path.join("search-index.js");
+        if index_path.is_file() {
+            index::Index::load(&index_path)
+        } else {
+            Ok(None)
         }
     }
 }
