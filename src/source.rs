@@ -3,6 +3,7 @@
 
 //! Handles documentation sources, for example local directories.
 
+use std::fs;
 use std::path;
 
 use anyhow::anyhow;
@@ -43,12 +44,18 @@ impl Source for DirSource {
     }
 
     fn load_index(&self) -> anyhow::Result<Option<index::Index>> {
-        let index_path = self.path.join("search-index.js");
-        if index_path.is_file() {
-            index::Index::load(&index_path)
-        } else {
-            Ok(None)
+        // use the first file that matches the pattern search-index*.js
+        for entry in fs::read_dir(&self.path)? {
+            let entry = entry?;
+            if entry.file_type()?.is_file() {
+                if let Some(s) = entry.file_name().to_str() {
+                    if s.starts_with("search-index") && s.ends_with(".js") {
+                        return index::Index::load(&entry.path());
+                    }
+                }
+            }
         }
+        Ok(None)
     }
 }
 
