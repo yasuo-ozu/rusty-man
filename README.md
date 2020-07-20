@@ -28,7 +28,7 @@ The error type for I/O operations of the `Read`, `Write`, `Seek`, and associated
 Errors mostly originate from the underlying OS, but custom instances of `Error` can be created with
 crafted error messages and a particular value of `ErrorKind`.
 
-$ rusty-man --source ~/.rustup/toolchains/stable-*/share/doc/html u8
+$ rusty-man --source ~/.rustup/toolchains/stable-*/share/doc/rust/html u8
 Found mulitple matches for u8 – select one of:
 
 [ 0 ] core::u8: The 8-bit unsigned integer type.
