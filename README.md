@@ -53,8 +53,8 @@ rusty-man to other platforms, please let me know.
 ## Contributing
 
 Contributions to this project are very welcome!  You can contribute by writing
-code or documentation or by testing.  See the
-[`CONTRIBUTING.md`](./CONTRIBUTING.md) file for more information.
+code or documentation or by testing.  See the [`CONTRIBUTING.md`][] file for
+more information.
 
 If you are looking for a good starting point, have a look at the [issues with
 the label “good first issue”][issues] in rusty-man’s issue tracker.
@@ -67,8 +67,8 @@ This crate supports Rust 1.40 or later.
 
 For bug reports, patches, feature requests or other messages, please send a
 mail to the mailing list [~ireas/rusty-man-dev@lists.sr.ht][] ([public
-archive][]).  You can also use the rusty-man [issue tracker][] for bug reports
-or features requests.
+archive][]) or [contact me directly][].  You can also use the rusty-man [issue
+tracker][] for bug reports or features requests.
 
 ## License
 
@@ -77,8 +77,10 @@ This project is licensed under the [MIT License][].
 `rusty-man` complies with [version 3.0 of the REUSE specification][reuse].
 
 [`termion`]: https://lib.rs/termion
+[`CONTRIBUTING.md`]: ./CONTRIBUTING.md
 [issues]: https://todo.sr.ht/~ireas/rusty-man?search=label:%22good%20first%20issue%22%20status%3Aopen
 [~ireas/rusty-man-dev@lists.sr.ht]: mailto:~ireas/rusty-man-dev@lists.sr.ht
+[contact me directly]: mailto:robin.krahl@ireas.org
 [public archive]: https://lists.sr.ht/~ireas/rusty-man-dev
 [issue tracker]: https://todo.sr.ht/~ireas/rusty-man
 [MIT license]: https://opensource.org/licenses/MIT
