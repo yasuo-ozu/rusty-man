@@ -59,7 +59,23 @@ fn select_first(
     select(element, selector).map(|mut i| i.next())
 }
 
-pub fn parse_item_doc<P: AsRef<path::Path>>(path: P) -> anyhow::Result<doc::Doc> {
+const ITEM_MEMBERS: &[(&str, &str)] = &[
+    ("Extern Crates", "extern-crates"),
+    ("Imports", "imports"),
+    ("Primitives", "primitives"),
+    ("Modules", "modules"),
+    ("Macros", "macros"),
+    ("Structs", "structs"),
+    ("Enums", "enums"),
+    ("Constants", "constants"),
+    ("Statics", "statics"),
+    ("Traits", "traits"),
+    ("Functions", "functions"),
+    ("Typedefs", "typedefs"),
+    ("Unions", "unions"),
+];
+
+pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &str) -> anyhow::Result<doc::Doc> {
     let document = parse_file(path)?;
     let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
     let definition = select_first(&document, ".docblock.type-decl")?;
@@ -68,6 +84,12 @@ pub fn parse_item_doc<P: AsRef<path::Path>>(path: P) -> anyhow::Result<doc::Doc>
     let mut doc = doc::Doc::new(get_html(heading.as_node())?);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
+    for (heading, id) in ITEM_MEMBERS {
+        let members = get_members(&document, name, id)?;
+        if !members.is_empty() {
+            doc.members.push((heading.to_string(), members));
+        }
+    }
     Ok(doc)
 }
 
@@ -89,6 +111,23 @@ pub fn parse_member_doc<P: AsRef<path::Path>>(
     doc.definition = Some(get_html(member.as_node())?);
     doc.description = docblock.map(|n| get_html(&n)).transpose()?;
     Ok(doc)
+}
+
+fn get_members(
+    document: &kuchiki::NodeRef,
+    base_name: &str,
+    id: &str,
+) -> anyhow::Result<Vec<doc::Doc>> {
+    let mut members: Vec<doc::Doc> = Vec::new();
+    if let Some(table) = select_first(document, &format!("#{} + table", id))? {
+        // On module pages, the members are listed in tables
+        let items = select(table.as_node(), "td:first-child :first-child")?;
+        for item in items {
+            let name = format!("{}::{}", base_name, get_html(item.as_node())?);
+            members.push(doc::Doc::new(name))
+        }
+    }
+    Ok(members)
 }
 
 fn get_member(
@@ -129,7 +168,7 @@ mod tests {
     fn test_parse_item_doc() {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeRef.html");
-        let doc = super::parse_item_doc(&path).unwrap();
+        let doc = super::parse_item_doc(&path, "kuchiki::NodeRef").unwrap();
 
         assert_eq!(
             "<span class=\"in-band\">\

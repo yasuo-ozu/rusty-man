@@ -126,7 +126,7 @@ impl Index {
                     // Skip associated types (== item type 16)
                     continue;
                 }
-                
+
                 let full_path = match item.parent {
                     Some(idx) => {
                         let parent = &data.paths[idx].1;

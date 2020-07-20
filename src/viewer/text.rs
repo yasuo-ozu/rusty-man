@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
+use std::fmt;
+
 use html2text::render::text_renderer;
 
 use crate::doc;
@@ -35,15 +37,37 @@ impl TextViewer {
             self.print(s);
         }
     }
+
+    fn print_heading(&self, s: &str, level: usize) {
+        let prefix = "#".repeat(level);
+        print!("{} ", prefix);
+        self.print(s);
+    }
+
+    fn print_list(&self, items: &[impl fmt::Display]) {
+        let html = items
+            .iter()
+            .map(|i| format!("<li>{}</li>", i))
+            .collect::<Vec<_>>()
+            .join("");
+        self.print(&format!("<ul>{}</ul>", html));
+    }
 }
 
 impl viewer::Viewer for TextViewer {
     fn open(&self, doc: &doc::Doc) -> anyhow::Result<()> {
         viewer::spawn_pager();
 
-        self.print(&doc.title);
+        self.print_heading(&doc.title, 1);
         self.print_opt(doc.definition.as_deref());
         self.print_opt(doc.description.as_deref());
+        for (heading, items) in &doc.members {
+            if !items.is_empty() {
+                println!();
+                self.print_heading(heading, 2);
+                self.print_list(items);
+            }
+        }
         Ok(())
     }
 }

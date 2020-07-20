@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
+use std::fmt;
 use std::path;
 
 use crate::parser;
@@ -23,6 +24,7 @@ pub struct Doc {
     pub title: String,
     pub description: Option<String>,
     pub definition: Option<String>,
+    pub members: Vec<(String, Vec<Doc>)>,
 }
 
 impl Crate {
@@ -31,10 +33,9 @@ impl Crate {
     }
 
     pub fn find_item(&self, item: &[&str]) -> anyhow::Result<Option<Item>> {
-        let name = item.join("::");
-        // TODO: add crate to name?
+        let (name, full_name) = self.get_names(item);
         parser::find_item(self.path.join("all.html"), &name)
-            .map(|o| o.map(|s| Item::new(name, self.path.join(path::PathBuf::from(s)), None)))
+            .map(|o| o.map(|s| Item::new(full_name, self.path.join(path::PathBuf::from(s)), None)))
     }
 
     pub fn find_module(&self, item: &[&str]) -> Option<Item> {
@@ -43,7 +44,8 @@ impl Crate {
             .join(path::PathBuf::from(item.join("/")))
             .join("index.html");
         if path.is_file() {
-            Some(Item::new(item.join("::"), path, None))
+            let (_, full_name) = self.get_names(item);
+            Some(Item::new(full_name, path, None))
         } else {
             None
         }
@@ -58,6 +60,16 @@ impl Crate {
             None
         }
     }
+
+    fn get_names(&self, item: &[&str]) -> (String, String) {
+        let name = item.join("::");
+        let full_name = if item.is_empty() {
+            self.name.clone()
+        } else {
+            format!("{}::{}", &self.name, &name)
+        };
+        (name, full_name)
+    }
 }
 
 impl Item {
@@ -69,7 +81,7 @@ impl Item {
         if let Some(member) = &self.member {
             parser::parse_member_doc(&self.path, &self.name, member)
         } else {
-            parser::parse_item_doc(&self.path)
+            parser::parse_item_doc(&self.path, &self.name)
         }
     }
 
@@ -92,6 +104,16 @@ impl Doc {
         Self {
             title,
             ..Default::default()
+        }
+    }
+}
+
+impl fmt::Display for Doc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(description) = &self.description {
+            write!(f, "{}: {}", &self.title, description)
+        } else {
+            write!(f, "{}", &self.title)
         }
     }
 }

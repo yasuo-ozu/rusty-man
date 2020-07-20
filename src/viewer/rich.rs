@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
+use std::fmt;
 use std::io::{self, Write};
 
 use html2text::render::text_renderer;
@@ -26,6 +27,13 @@ impl RichViewer {
         self.print_heading(&doc.title, 1)?;
         self.print_opt(doc.definition.as_deref())?;
         self.print_opt(doc.description.as_deref())?;
+        for (heading, items) in &doc.members {
+            if !items.is_empty() {
+                writeln!(io::stdout())?;
+                self.print_heading(heading, 2)?;
+                self.print_list(items)?;
+            }
+        }
         Ok(())
     }
 
@@ -56,6 +64,15 @@ impl RichViewer {
         write!(io::stdout(), "{}{} ", termion::style::Bold, prefix)?;
         self.print(s)?;
         write!(io::stdout(), "{}", termion::style::Reset)
+    }
+
+    fn print_list(&self, items: &[impl fmt::Display]) -> io::Result<()> {
+        let html = items
+            .iter()
+            .map(|i| format!("<li>{}</li>", i))
+            .collect::<Vec<_>>()
+            .join("");
+        self.print(&format!("<ul>{}</ul>", html))
     }
 
     fn render_string(&self, ts: &RichString) -> io::Result<()> {
