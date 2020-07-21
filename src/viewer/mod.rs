@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
-mod rich;
 mod text;
 
 use std::cmp;
@@ -15,23 +14,20 @@ pub trait Viewer: fmt::Debug {
 }
 
 pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
-    match s.to_lowercase().as_ref() {
-        "rich" => Ok(Box::new(rich::RichViewer::new())),
-        "text" => Ok(Box::new(text::TextViewer::new())),
-        _ => Err(anyhow::anyhow!("The viewer {} is not supported", s)),
-    }
+    let viewer: Box<dyn Viewer> = match s.to_lowercase().as_ref() {
+        "plain" => Box::new(text::TextViewer::with_plain_text()),
+        "rich" => Box::new(text::TextViewer::with_rich_text()),
+        _ => anyhow::bail!("The viewer {} is not supported", s),
+    };
+    Ok(viewer)
 }
 
 pub fn get_default() -> Box<dyn Viewer> {
     if termion::is_tty(&io::stdout()) {
-        Box::new(rich::RichViewer::new())
+        Box::new(text::TextViewer::with_rich_text())
     } else {
-        Box::new(text::TextViewer::new())
+        Box::new(text::TextViewer::with_plain_text())
     }
-}
-
-pub fn spawn_pager() {
-    pager::Pager::with_default_pager("less -cr").setup()
 }
 
 pub fn get_line_length() -> usize {

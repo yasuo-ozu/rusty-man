@@ -1,15 +1,14 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
-use std::fmt;
+use std::io::{self, Write};
 
 use html2text::render::text_renderer;
 
-use crate::doc;
 use crate::viewer;
 
 #[derive(Clone, Debug)]
-pub struct TextViewer {
+pub struct PlainTextRenderer {
     line_length: usize,
 }
 
@@ -18,61 +17,33 @@ struct Decorator {
     ignore_next_link: bool,
 }
 
-impl TextViewer {
+impl PlainTextRenderer {
     pub fn new() -> Self {
         Self {
             line_length: viewer::get_line_length(),
         }
     }
-
-    fn print(&self, s: &str) {
-        println!(
-            "{}",
-            html2text::from_read_with_decorator(s.as_bytes(), self.line_length, Decorator::new())
-        );
-    }
-
-    fn print_opt(&self, s: Option<&str>) {
-        if let Some(s) = s {
-            self.print(s);
-        }
-    }
-
-    fn print_heading(&self, s: &str, level: usize) {
-        let prefix = "#".repeat(level);
-        print!("{} ", prefix);
-        self.print(s);
-    }
-
-    fn print_list(&self, items: &[impl fmt::Display]) {
-        let html = items
-            .iter()
-            .map(|i| format!("<li>{}</li>", i))
-            .collect::<Vec<_>>()
-            .join("");
-        self.print(&format!("<ul>{}</ul>", html));
-    }
 }
 
-impl viewer::Viewer for TextViewer {
-    fn open(&self, doc: &doc::Doc) -> anyhow::Result<()> {
-        viewer::spawn_pager();
+impl super::Printer for PlainTextRenderer {
+    fn print_html(&self, s: &str) -> io::Result<()> {
+        writeln!(
+            io::stdout(),
+            "{}",
+            html2text::from_read_with_decorator(s.as_bytes(), self.line_length, Decorator::new())
+        )
+    }
 
-        if let Some(title) = &doc.title {
-            self.print_heading(title, 1);
-        } else {
-            self.print_heading(doc.name.as_ref(), 1);
-        }
-        self.print_opt(doc.definition.as_deref());
-        self.print_opt(doc.description.as_deref());
-        for (heading, items) in &doc.members {
-            if !items.is_empty() {
-                println!();
-                self.print_heading(heading, 2);
-                self.print_list(items);
-            }
-        }
-        Ok(())
+    fn print_heading(&self, level: usize, s: &str) -> io::Result<()> {
+        self.print_html(&format!(
+            "<h{level}>{text}</h{level}>",
+            level = level,
+            text = s
+        ))
+    }
+
+    fn println(&self) -> io::Result<()> {
+        writeln!(io::stdout())
     }
 }
 
