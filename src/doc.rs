@@ -21,6 +21,14 @@ pub struct Name {
 #[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Fqn(Name);
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ItemType {
+    Crate,
+    Module,
+    Item,
+    Member,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Crate {
     pub name: String,
@@ -29,9 +37,9 @@ pub struct Crate {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
-    pub path: path::PathBuf,
     pub name: Fqn,
-    pub member: Option<String>,
+    pub ty: ItemType,
+    pub path: path::PathBuf,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -135,6 +143,10 @@ impl Fqn {
         self.first()
     }
 
+    pub fn is_crate(&self) -> bool {
+        self.0.is_singleton()
+    }
+
     pub fn parent(&self) -> Option<Self> {
         self.0.parent().map(From::from)
     }
@@ -186,7 +198,11 @@ impl Crate {
             if let Some(local_name) = name.rest() {
                 if let Some(path) = parser::find_item(self.path.join("all.html"), local_name)? {
                     let path = path::PathBuf::from(path);
-                    return Ok(Some(Item::new(name.clone(), self.path.join(path), None)));
+                    return Ok(Some(Item::new(
+                        name.clone(),
+                        self.path.join(path),
+                        ItemType::Item,
+                    )));
                 }
             }
         }
@@ -205,7 +221,12 @@ impl Crate {
             };
             let path = self.path.join(module_path).join("index.html");
             if path.is_file() {
-                Some(Item::new(name.clone(), path, None))
+                let item_type = if name.is_crate() {
+                    ItemType::Crate
+                } else {
+                    ItemType::Module
+                };
+                Some(Item::new(name.clone(), path, item_type))
             } else {
                 None
             }
@@ -215,15 +236,11 @@ impl Crate {
     }
 
     pub fn find_member(&self, name: &Fqn) -> Option<Item> {
-        if self.name == name.krate() {
-            if let Some(parent) = name.parent() {
-                // TODO: error
-                self.find_item(&parent)
-                    .unwrap()
-                    .and_then(|i| i.find_member(name.last()))
-            } else {
-                None
-            }
+        if let Some(parent) = name.parent() {
+            // TODO: error
+            self.find_item(&parent)
+                .unwrap()
+                .and_then(|i| i.find_member(name.last()))
         } else {
             None
         }
@@ -231,13 +248,13 @@ impl Crate {
 }
 
 impl Item {
-    pub fn new(name: Fqn, path: path::PathBuf, member: Option<String>) -> Self {
-        Item { path, member, name }
+    pub fn new(name: Fqn, path: path::PathBuf, ty: ItemType) -> Self {
+        Item { name, ty, path }
     }
 
     pub fn load_doc(&self) -> anyhow::Result<Doc> {
-        if let Some(member) = &self.member {
-            parser::parse_member_doc(&self.path, &self.name, member)
+        if self.ty == ItemType::Member {
+            parser::parse_member_doc(&self.path, &self.name)
         } else {
             parser::parse_item_doc(&self.path, &self.name)
         }
@@ -247,9 +264,9 @@ impl Item {
         // TODO: error handling
         if parser::find_member(&self.path, name).unwrap() {
             Some(Item::new(
-                self.name.clone(),
+                self.name.child(name),
                 self.path.clone(),
-                Some(name.to_owned()),
+                ItemType::Member,
             ))
         } else {
             None

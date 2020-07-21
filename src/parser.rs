@@ -96,19 +96,18 @@ pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow:
 
 pub fn parse_member_doc<P: AsRef<path::Path>>(
     path: P,
-    item: &doc::Fqn,
-    name: &str,
+    name: &doc::Fqn,
 ) -> anyhow::Result<doc::Doc> {
     let document = parse_file(path)?;
-    let member =
-        get_member(&document, name)?.with_context(|| format!("Could not find member {}", name))?;
+    let member = get_member(&document, name.last())?
+        .with_context(|| format!("Could not find member {}", name))?;
     let heading = member
         .as_node()
         .parent()
         .with_context(|| format!("The member {} does not have a parent", name))?;
     let docblock = heading.next_sibling();
 
-    let mut doc = doc::Doc::new(item.child(name));
+    let mut doc = doc::Doc::new(name.clone());
     doc.definition = Some(get_html(member.as_node())?);
     doc.description = docblock.map(|n| get_html(&n)).transpose()?;
     Ok(doc)
@@ -190,10 +189,10 @@ mod tests {
     fn test_parse_member_doc() {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeDataRef.html");
-        let name: doc::Fqn = "kuchiki::NodeDataRef".to_owned().into();
-        let doc = super::parse_member_doc(&path, &name, "as_node").unwrap();
+        let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
+        let doc = super::parse_member_doc(&path, &name).unwrap();
 
-        assert_eq!(name.child("as_node"), doc.name);
+        assert_eq!(name, doc.name);
         assert!(doc.title.is_none());
         assert_eq!(
             "<code id=\"as_node.v\">\
