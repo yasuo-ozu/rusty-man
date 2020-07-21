@@ -40,7 +40,13 @@ impl<P: Printer> TextViewer<P> {
             if !items.is_empty() {
                 self.printer.println()?;
                 self.printer.print_heading(2, heading)?;
-                self.print_list(items.iter())?;
+                self.print_list(items.iter().map(|i| {
+                    if let Some(description) = &i.description {
+                        format!("{}<br/>{}", i.name.last(), description)
+                    } else {
+                        i.name.last().to_owned()
+                    }
+                }))?;
             }
         }
         Ok(())

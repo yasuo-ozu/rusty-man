@@ -137,8 +137,14 @@ fn get_members(
         // On module pages, the members are listed in tables
         let items = select(table.as_node(), "td:first-child :first-child")?;
         for item in items {
-            let item_name = get_html(item.as_node())?;
-            members.push(doc::Doc::new(base_name.child(&item_name)))
+            let item_name = item.as_node().text_contents();
+            let docblock = item.as_node().parent().and_then(|n| n.next_sibling());
+
+            let mut doc = doc::Doc::new(base_name.child(&item_name));
+            // We would like to use inner_html() here, but that is currently not implemented in
+            // kuchiki
+            doc.description = docblock.map(|n| n.text_contents());
+            members.push(doc);
         }
     }
     Ok(members)
