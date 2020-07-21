@@ -20,24 +20,25 @@ use std::fs;
 use std::io;
 use std::path;
 
+use crate::doc;
+
 #[derive(Debug)]
 pub struct Index {
     data: Data,
 }
 
-#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct IndexItem {
-    pub path: String,
-    pub name: String,
+    pub name: doc::Fqn,
     pub description: String,
 }
 
 impl fmt::Display for IndexItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.description.is_empty() {
-            write!(f, "{}::{}", &self.path, &self.name)
+            write!(f, "{}", &self.name)
         } else {
-            write!(f, "{}::{}: {}", &self.path, &self.name, &self.description)
+            write!(f, "{}: {}", &self.name, &self.description)
         }
     }
 }
@@ -110,8 +111,7 @@ impl Index {
         }
     }
 
-    pub fn find(&self, keyword: &str) -> Vec<IndexItem> {
-        let keyword = format!("::{}", keyword);
+    pub fn find(&self, name: &doc::Name) -> Vec<IndexItem> {
         let mut matches: Vec<IndexItem> = Vec::new();
         for (krate, data) in &self.data.crates {
             let mut path = krate;
@@ -134,11 +134,10 @@ impl Index {
                     }
                     None => path.to_owned(),
                 };
-                let full_name = format!("{}::{}", &full_path, &item.name);
-                if full_name.ends_with(&keyword) {
+                let full_name: doc::Fqn = format!("{}::{}", &full_path, &item.name).into();
+                if full_name.ends_with(&name) {
                     matches.push(IndexItem {
-                        name: item.name.clone(),
-                        path: full_path,
+                        name: full_name,
                         description: item.desc.clone(),
                     });
                 }
