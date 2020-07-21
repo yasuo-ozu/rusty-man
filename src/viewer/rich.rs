@@ -24,7 +24,11 @@ impl RichViewer {
     }
 
     fn print_doc(&self, doc: &doc::Doc) -> io::Result<()> {
-        self.print_heading(&doc.title, 1)?;
+        if let Some(title) = &doc.title {
+            self.print_heading(title, 1)?;
+        } else {
+            self.print_heading(doc.name.as_ref(), 1)?;
+        }
         self.print_opt(doc.definition.as_deref())?;
         self.print_opt(doc.description.as_deref())?;
         for (heading, items) in &doc.members {

@@ -75,13 +75,14 @@ const ITEM_MEMBERS: &[(&str, &str)] = &[
     ("Unions", "unions"),
 ];
 
-pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &str) -> anyhow::Result<doc::Doc> {
+pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
     let document = parse_file(path)?;
     let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
     let definition = select_first(&document, ".docblock.type-decl")?;
     let description = select_first(&document, ".docblock:not(.type-decl)")?;
 
-    let mut doc = doc::Doc::new(get_html(heading.as_node())?);
+    let mut doc = doc::Doc::new(name.clone());
+    doc.title = Some(get_html(heading.as_node())?);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
     for (heading, id) in ITEM_MEMBERS {
@@ -95,7 +96,7 @@ pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &str) -> anyhow::Resu
 
 pub fn parse_member_doc<P: AsRef<path::Path>>(
     path: P,
-    item: &str,
+    item: &doc::Fqn,
     name: &str,
 ) -> anyhow::Result<doc::Doc> {
     let document = parse_file(path)?;
@@ -107,7 +108,7 @@ pub fn parse_member_doc<P: AsRef<path::Path>>(
         .with_context(|| format!("The member {} does not have a parent", name))?;
     let docblock = heading.next_sibling();
 
-    let mut doc = doc::Doc::new(format!("{}::{}", item, name));
+    let mut doc = doc::Doc::new(item.child(name));
     doc.definition = Some(get_html(member.as_node())?);
     doc.description = docblock.map(|n| get_html(&n)).transpose()?;
     Ok(doc)
@@ -115,7 +116,7 @@ pub fn parse_member_doc<P: AsRef<path::Path>>(
 
 fn get_members(
     document: &kuchiki::NodeRef,
-    base_name: &str,
+    base_name: &doc::Fqn,
     id: &str,
 ) -> anyhow::Result<Vec<doc::Doc>> {
     let mut members: Vec<doc::Doc> = Vec::new();
@@ -123,8 +124,8 @@ fn get_members(
         // On module pages, the members are listed in tables
         let items = select(table.as_node(), "td:first-child :first-child")?;
         for item in items {
-            let name = format!("{}::{}", base_name, get_html(item.as_node())?);
-            members.push(doc::Doc::new(name))
+            let item_name = get_html(item.as_node())?;
+            members.push(doc::Doc::new(base_name.child(&item_name)))
         }
     }
     Ok(members)
@@ -153,6 +154,8 @@ fn get_html(node: &kuchiki::NodeRef) -> anyhow::Result<String> {
 
 #[cfg(test)]
 mod tests {
+    use crate::doc;
+
     #[test]
     fn test_find_item() {
         let path = crate::tests::ensure_docs();
@@ -168,14 +171,16 @@ mod tests {
     fn test_parse_item_doc() {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeRef.html");
-        let doc = super::parse_item_doc(&path, "kuchiki::NodeRef").unwrap();
+        let name: doc::Fqn = "kuchiki::NodeRef".to_owned().into();
+        let doc = super::parse_item_doc(&path, &name).unwrap();
 
+        assert_eq!(name, doc.name);
         assert_eq!(
             "<span class=\"in-band\">\
              Struct <a href=\"index.html\">kuchiki</a>::<wbr>\
              <a class=\"struct\" href=\"\">NodeRef</a>\
              </span>",
-            &doc.title
+            &doc.title.unwrap()
         );
         assert!(doc.definition.is_some());
         assert!(doc.description.is_some());
@@ -185,9 +190,11 @@ mod tests {
     fn test_parse_member_doc() {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeDataRef.html");
-        let doc = super::parse_member_doc(&path, "kuchiki::NodeDataRef", "as_node").unwrap();
+        let name: doc::Fqn = "kuchiki::NodeDataRef".to_owned().into();
+        let doc = super::parse_member_doc(&path, &name, "as_node").unwrap();
 
-        assert_eq!("kuchiki::NodeDataRef::as_node", &doc.title);
+        assert_eq!(name.child("as_node"), doc.name);
+        assert!(doc.title.is_none());
         assert_eq!(
             "<code id=\"as_node.v\">\
              pub fn <a class=\"fnname\" href=\"#method.as_node\">as_node</a>(&amp;self) \

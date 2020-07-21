@@ -36,7 +36,8 @@ pub struct Item {
 
 #[derive(Clone, Debug, Default)]
 pub struct Doc {
-    pub title: String,
+    pub name: Fqn,
+    pub title: Option<String>,
     pub description: Option<String>,
     pub definition: Option<String>,
     pub members: Vec<(String, Vec<Doc>)>,
@@ -91,6 +92,12 @@ impl Name {
     }
 }
 
+impl AsRef<str> for Name {
+    fn as_ref(&self) -> &str {
+        self.s.as_ref()
+    }
+}
+
 impl From<String> for Name {
     fn from(s: String) -> Self {
         let first_end = s.find("::").unwrap_or_else(|| s.len());
@@ -134,6 +141,12 @@ impl Fqn {
 
     pub fn child(&self, s: &str) -> Self {
         self.0.child(s).into()
+    }
+}
+
+impl AsRef<str> for Fqn {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
     }
 }
 
@@ -224,9 +237,9 @@ impl Item {
 
     pub fn load_doc(&self) -> anyhow::Result<Doc> {
         if let Some(member) = &self.member {
-            parser::parse_member_doc(&self.path, self.name.rest_or_first(), member)
+            parser::parse_member_doc(&self.path, &self.name, member)
         } else {
-            parser::parse_item_doc(&self.path, self.name.rest_or_first())
+            parser::parse_item_doc(&self.path, &self.name)
         }
     }
 
@@ -245,9 +258,9 @@ impl Item {
 }
 
 impl Doc {
-    pub fn new(title: String) -> Self {
+    pub fn new(name: Fqn) -> Self {
         Self {
-            title,
+            name,
             ..Default::default()
         }
     }
@@ -256,9 +269,9 @@ impl Doc {
 impl fmt::Display for Doc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(description) = &self.description {
-            write!(f, "{}: {}", &self.title, description)
+            write!(f, "{}: {}", &self.name, description)
         } else {
-            write!(f, "{}", &self.title)
+            write!(f, "{}", &self.name)
         }
     }
 }
