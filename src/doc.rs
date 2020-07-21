@@ -253,10 +253,10 @@ impl Item {
     }
 
     pub fn load_doc(&self) -> anyhow::Result<Doc> {
-        if self.ty == ItemType::Member {
-            parser::parse_member_doc(&self.path, &self.name)
-        } else {
-            parser::parse_item_doc(&self.path, &self.name)
+        match self.ty {
+            ItemType::Member => parser::parse_member_doc(&self.path, &self.name),
+            ItemType::Module | ItemType::Crate => parser::parse_module_doc(&self.path, &self.name),
+            ItemType::Item => parser::parse_item_doc(&self.path, &self.name),
         }
     }
 

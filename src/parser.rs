@@ -59,7 +59,20 @@ fn select_first(
     select(element, selector).map(|mut i| i.next())
 }
 
-const ITEM_MEMBERS: &[(&str, &str)] = &[
+pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
+    let document = parse_file(path)?;
+    let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
+    let definition = select_first(&document, ".docblock.type-decl")?;
+    let description = select_first(&document, ".docblock:not(.type-decl)")?;
+
+    let mut doc = doc::Doc::new(name.clone());
+    doc.title = Some(get_html(heading.as_node())?);
+    doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
+    doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
+    Ok(doc)
+}
+
+const MODULE_MEMBER_TYPES: &[(&str, &str)] = &[
     ("Extern Crates", "extern-crates"),
     ("Imports", "imports"),
     ("Primitives", "primitives"),
@@ -75,17 +88,18 @@ const ITEM_MEMBERS: &[(&str, &str)] = &[
     ("Unions", "unions"),
 ];
 
-pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
+pub fn parse_module_doc<P: AsRef<path::Path>>(
+    path: P,
+    name: &doc::Fqn,
+) -> anyhow::Result<doc::Doc> {
     let document = parse_file(path)?;
     let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
-    let definition = select_first(&document, ".docblock.type-decl")?;
-    let description = select_first(&document, ".docblock:not(.type-decl)")?;
+    let description = select_first(&document, ".docblock")?;
 
     let mut doc = doc::Doc::new(name.clone());
     doc.title = Some(get_html(heading.as_node())?);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
-    doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
-    for (heading, id) in ITEM_MEMBERS {
+    for (heading, id) in MODULE_MEMBER_TYPES {
         let members = get_members(&document, name, id)?;
         if !members.is_empty() {
             doc.members.push((heading.to_string(), members));
