@@ -33,11 +33,17 @@ impl<P: Printer> TextViewer<P> {
             .print_heading(1, &format!("{} {}", doc.ty.name(), doc.name.as_ref()))?;
         self.print_opt(doc.definition.as_deref())?;
         self.print_opt(doc.description.as_deref())?;
-        for (heading, items) in &doc.members {
-            if !items.is_empty() {
-                self.printer.println()?;
-                self.printer.print_heading(2, heading)?;
-                self.print_list(items.iter().map(|i| {
+        for (ty, groups) in &doc.groups {
+            self.printer.println()?;
+            self.printer.print_heading(2, ty.group_name())?;
+
+            for group in groups {
+                if let Some(title) = &group.title {
+                    self.printer.println()?;
+                    self.printer.print_heading(3, title)?;
+                }
+
+                self.print_list(group.members.iter().map(|i| {
                     if let Some(description) = &i.description {
                         format!("{}<br/>{}", i.name.last(), description)
                     } else {

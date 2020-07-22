@@ -71,7 +71,13 @@ pub struct Doc {
     pub ty: ItemType,
     pub description: Option<String>,
     pub definition: Option<String>,
-    pub members: Vec<(String, Vec<Doc>)>,
+    pub groups: Vec<(ItemType, Vec<MemberGroup>)>,
+}
+
+#[derive(Clone, Debug)]
+pub struct MemberGroup {
+    pub title: Option<String>,
+    pub members: Vec<Doc>,
 }
 
 impl Name {
@@ -425,7 +431,16 @@ impl Doc {
             ty,
             description: Default::default(),
             definition: Default::default(),
-            members: Default::default(),
+            groups: Default::default(),
+        }
+    }
+}
+
+impl MemberGroup {
+    pub fn new() -> Self {
+        MemberGroup {
+            title: None,
+            members: Vec::new(),
         }
     }
 }

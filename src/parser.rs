@@ -110,10 +110,10 @@ pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     for item_type in MODULE_MEMBER_TYPES {
-        let members = get_members(&document, item, *item_type)?;
-        if !members.is_empty() {
-            doc.members
-                .push((item_type.group_name().to_string(), members));
+        let mut group = doc::MemberGroup::new();
+        group.members = get_members(&document, item, *item_type)?;
+        if !group.members.is_empty() {
+            doc.groups.push((*item_type, vec![group]));
         }
     }
     Ok(doc)
