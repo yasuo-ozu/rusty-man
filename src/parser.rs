@@ -154,60 +154,39 @@ pub fn parse_member_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     Ok(doc)
 }
 
+fn get_id_part(node: &kuchiki::NodeRef, i: usize) -> Option<String> {
+    get_node_attribute(node, "id").and_then(|s| s.splitn(2, '.').nth(i).map(ToOwned::to_owned))
+}
+
 fn get_fields(
     document: &kuchiki::NodeRef,
     parent: &doc::Item,
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::StructField;
-    let mut fields: Vec<doc::Doc> = Vec::new();
+    let mut fields = MemberDocs::new(parent, ty);
     let heading = select_first(document, &format!("#{}", ty.group_id()))?;
 
     let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
     let mut name: Option<String> = None;
     let mut definition: Option<String> = None;
+
     while let Some(element) = &next {
         if is_element(element, &local_name!("span")) && has_class(element, ty.class()) {
-            if let Some(name) = &name {
-                let mut doc = doc::Doc::new(parent.name.child(name), ty);
-                doc.definition = definition.take();
-                fields.push(doc);
-            }
-            name = get_node_attribute(element, "id")
-                .and_then(|s| s.splitn(2, '.').nth(1).map(ToOwned::to_owned));
+            fields.push(&mut name, &mut definition, None)?;
+            name = get_id_part(element, 1);
             definition = Some(get_html(element)?);
-            next = element.next_sibling();
         } else if is_element(element, &local_name!("div")) {
             if has_class(element, "docblock") {
-                if let Some(name) = &name {
-                    let mut doc = doc::Doc::new(parent.name.child(name), ty);
-                    doc.definition = definition.take();
-                    // TODO: use inner_html() instead
-                    doc.description = element.first_child().map(|n| n.text_contents());
-                    fields.push(doc);
-                }
-                name = None;
-                definition = None;
+                fields.push(&mut name, &mut definition, Some(element))?;
             }
-
-            next = element.next_sibling();
         } else {
-            if let Some(name) = &name {
-                let mut doc = doc::Doc::new(parent.name.child(name), ty);
-                doc.definition = definition.take();
-                fields.push(doc);
-            }
-            next = None;
+            fields.push(&mut name, &mut definition, None)?;
+            break;
         }
+        next = element.next_sibling();
     }
 
-    let mut groups: Vec<doc::MemberGroup> = Vec::new();
-    if !fields.is_empty() {
-        let mut group = doc::MemberGroup::new(None);
-        group.members = fields;
-        groups.push(group);
-    }
-
-    Ok((ty, groups))
+    Ok((ty, fields.into_member_groups(None)))
 }
 
 fn get_methods(
@@ -235,7 +214,7 @@ fn get_methods(
                             doc::ItemType::Method,
                             local_name!("h4"),
                         )?;
-                        if !group.members.is_empty() {
+                        if let Some(group) = group {
                             groups.push(group);
                         }
                         next = impl_items.next_sibling();
@@ -260,7 +239,7 @@ fn get_methods(
                 doc::ItemType::Method,
                 local_name!("h4"),
             )?;
-            if !group.members.is_empty() {
+            if let Some(group) = group {
                 groups.push(group);
             }
         }
@@ -277,7 +256,7 @@ fn get_methods(
                 doc::ItemType::TyMethod,
                 local_name!("h3"),
             )?;
-            if !group.members.is_empty() {
+            if let Some(group) = group {
                 groups.push(group);
             }
         }
@@ -294,7 +273,7 @@ fn get_methods(
                 doc::ItemType::TyMethod,
                 local_name!("h3"),
             )?;
-            if !group.members.is_empty() {
+            if let Some(group) = group {
                 groups.push(group);
             }
         }
@@ -320,7 +299,7 @@ fn get_assoc_types(
                 doc::ItemType::AssocType,
                 local_name!("h3"),
             )?;
-            if !group.members.is_empty() {
+            if let Some(group) = group {
                 groups.push(group);
             }
         }
@@ -335,35 +314,22 @@ fn get_method_group(
     impl_items: &kuchiki::NodeRef,
     ty: doc::ItemType,
     heading_type: markup5ever::LocalName,
-) -> anyhow::Result<doc::MemberGroup> {
-    let mut group = doc::MemberGroup::new(title);
+) -> anyhow::Result<Option<doc::MemberGroup>> {
+    let mut methods = MemberDocs::new(parent, ty);
 
     let mut name: Option<String> = None;
     let mut definition: Option<String> = None;
     for element in impl_items.children() {
         if is_element(&element, &heading_type) && has_class(&element, "method") {
-            if let Some(name) = name {
-                let mut doc = doc::Doc::new(parent.name.child(&name), ty);
-                doc.definition = definition;
-                group.members.push(doc);
-            }
-            name = get_node_attribute(&element, "id")
-                .and_then(|a| a.splitn(2, '.').nth(1).map(ToOwned::to_owned));
+            methods.push(&mut name, &mut definition, None)?;
+            name = get_id_part(&element, 1);
             definition = element.first_child().map(|n| get_html(&n)).transpose()?;
         } else if is_element(&element, &local_name!("div")) && has_class(&element, "docblock") {
-            // TODO: inner html
-            if let Some(name) = name {
-                let mut doc = doc::Doc::new(parent.name.child(&name), ty);
-                doc.definition = definition;
-                doc.description = element.first_child().map(|n| n.text_contents());
-                group.members.push(doc);
-            }
-            name = None;
-            definition = None;
+            methods.push(&mut name, &mut definition, Some(&element))?;
         }
     }
 
-    Ok(group)
+    Ok(methods.into_member_group(title))
 }
 
 fn get_variants(
@@ -371,7 +337,7 @@ fn get_variants(
     parent: &doc::Item,
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::Variant;
-    let mut variants: Vec<doc::Doc> = Vec::new();
+    let mut variants = MemberDocs::new(parent, ty);
     let heading = select_first(document, &format!("#{}", ty.group_id()))?;
 
     let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
@@ -380,41 +346,21 @@ fn get_variants(
     while let Some(element) = &next {
         if is_element(element, &local_name!("div")) {
             if has_class(element, ty.class()) {
-                if let Some(name) = &name {
-                    variants.push(doc::Doc::new(parent.name.child(name), ty));
-                }
-                name = get_node_attribute(element, "id")
-                    .and_then(|s| s.splitn(2, '.').nth(1).map(ToOwned::to_owned));
+                variants.push(&mut name, &mut definition, None)?;
+                name = get_id_part(element, 1);
                 definition = Some(get_html(element)?);
             } else if has_class(element, "docblock") {
-                if let Some(name) = &name {
-                    let mut doc = doc::Doc::new(parent.name.child(name), ty);
-                    // TODO: use inner_html() instead
-                    doc.description = element.first_child().map(|n| n.text_contents());
-                    doc.definition = definition.take();
-                    variants.push(doc);
-                }
-                name = None;
+                variants.push(&mut name, &mut definition, Some(element))?;
             }
 
             next = element.next_sibling();
         } else {
-            if let Some(name) = &name {
-                let mut doc = doc::Doc::new(parent.name.child(name), ty);
-                doc.definition = definition.take();
-                variants.push(doc);
-            }
-            next = None;
+            variants.push(&mut name, &mut definition, None)?;
+            break;
         }
     }
 
-    let mut groups: Vec<doc::MemberGroup> = Vec::new();
-    if !variants.is_empty() {
-        let mut group = doc::MemberGroup::new(None);
-        group.members = variants;
-        groups.push(group);
-    }
-    Ok((ty, groups))
+    Ok((ty, variants.into_member_groups(None)))
 }
 
 fn get_members(
@@ -482,6 +428,60 @@ fn get_html(node: &kuchiki::NodeRef) -> anyhow::Result<String> {
     let mut vec: Vec<u8> = Vec::new();
     node.serialize(&mut vec)?;
     String::from_utf8(vec).context("Could not convert node to HTML")
+}
+
+struct MemberDocs<'a> {
+    docs: Vec<doc::Doc>,
+    parent: &'a doc::Item,
+    ty: doc::ItemType,
+}
+
+impl<'a> MemberDocs<'a> {
+    pub fn new(parent: &'a doc::Item, ty: doc::ItemType) -> Self {
+        Self {
+            docs: Vec::new(),
+            parent,
+            ty,
+        }
+    }
+
+    pub fn push(
+        &mut self,
+        name: &mut Option<String>,
+        definition: &mut Option<String>,
+        description: Option<&kuchiki::NodeRef>,
+    ) -> anyhow::Result<()> {
+        let name = name.take();
+        let definition = definition.take();
+
+        if let Some(name) = name {
+            let mut doc = doc::Doc::new(self.parent.name.child(&name), self.ty);
+            doc.definition = definition;
+            doc.description = description.map(|n| get_html(n)).transpose()?;
+            self.docs.push(doc);
+        }
+        Ok(())
+    }
+
+    pub fn into_member_group(self, title: Option<String>) -> Option<doc::MemberGroup> {
+        if self.docs.is_empty() {
+            None
+        } else {
+            let mut group = doc::MemberGroup::new(title);
+            group.members = self.docs;
+            Some(group)
+        }
+    }
+
+    pub fn into_member_groups(self, title: Option<String>) -> Vec<doc::MemberGroup> {
+        self.into_member_group(title).into_iter().collect()
+    }
+}
+
+impl<'a> From<MemberDocs<'a>> for Vec<doc::Doc> {
+    fn from(md: MemberDocs<'a>) -> Self {
+        md.docs
+    }
 }
 
 #[cfg(test)]
