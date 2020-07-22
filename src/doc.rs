@@ -474,6 +474,13 @@ impl MemberGroup {
             members: Vec::new(),
         }
     }
+
+    pub fn with_title(title: String) -> Self {
+        MemberGroup {
+            title: Some(title),
+            members: Vec::new(),
+        }
+    }
 }
 
 impl fmt::Display for Doc {

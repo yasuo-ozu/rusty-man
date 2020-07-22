@@ -89,6 +89,10 @@ pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
+    let (ty, groups) = get_methods(&document, item)?;
+    if !groups.is_empty() {
+        doc.groups.push((ty, groups));
+    }
 
     Ok(doc)
 }
@@ -141,6 +145,90 @@ pub fn parse_member_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     Ok(doc)
 }
 
+fn get_methods(
+    document: &kuchiki::NodeRef,
+    parent: &doc::Item,
+) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
+    let ty = doc::ItemType::Method;
+    let mut groups: Vec<doc::MemberGroup> = Vec::new();
+    let heading = select_first(document, &format!("#{}", ty.group_id()))?;
+
+    let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
+    while let Some(subheading) = &next {
+        if is_element(subheading, markup5ever::local_name!("h3")) && has_class(subheading, "impl") {
+            if let Some(name_element) = subheading.first_child() {
+                let name = get_html(&name_element)?;
+                next = subheading.next_sibling();
+                if let Some(impl_items) = &next {
+                    if is_element(impl_items, markup5ever::local_name!("div"))
+                        && has_class(impl_items, "impl-items")
+                    {
+                        let group = get_method_group(parent, name, &impl_items)?;
+                        if !group.members.is_empty() {
+                            groups.push(group);
+                        }
+                        next = impl_items.next_sibling();
+                    }
+                }
+            } else {
+                next = None;
+            }
+        } else {
+            next = None;
+        }
+    }
+
+    let heading = select_first(document, "#deref-methods")?;
+    if let Some(heading) = heading {
+        let title = get_html(heading.as_node())?;
+        if let Some(impl_items) = heading.as_node().next_sibling() {
+            let group = get_method_group(parent, title, &impl_items)?;
+            if !group.members.is_empty() {
+                groups.push(group);
+            }
+        }
+    }
+
+    Ok((ty, groups))
+}
+
+fn get_method_group(
+    parent: &doc::Item,
+    title: String,
+    impl_items: &kuchiki::NodeRef,
+) -> anyhow::Result<doc::MemberGroup> {
+    let mut group = doc::MemberGroup::with_title(title);
+
+    let mut name: Option<String> = None;
+    let mut definition: Option<String> = None;
+    for element in impl_items.children() {
+        if is_element(&element, markup5ever::local_name!("h4")) && has_class(&element, "method") {
+            if let Some(name) = name {
+                let mut doc = doc::Doc::new(parent.name.child(&name), doc::ItemType::Method);
+                doc.definition = definition;
+                group.members.push(doc);
+            }
+            name = get_node_attribute(&element, "id")
+                .and_then(|a| a.splitn(2, '.').nth(1).map(ToOwned::to_owned));
+            definition = element.first_child().map(|n| get_html(&n)).transpose()?;
+        } else if is_element(&element, markup5ever::local_name!("div"))
+            && has_class(&element, "docblock")
+        {
+            // TODO: inner html
+            if let Some(name) = name {
+                let mut doc = doc::Doc::new(parent.name.child(&name), doc::ItemType::Method);
+                doc.definition = definition;
+                doc.description = element.first_child().map(|n| n.text_contents());
+                group.members.push(doc);
+            }
+            name = None;
+            definition = None;
+        }
+    }
+
+    Ok(group)
+}
+
 fn get_variants(
     document: &kuchiki::NodeRef,
     parent: &doc::Item,
@@ -163,7 +251,7 @@ fn get_variants(
                 if let Some(name) = &name {
                     let mut doc = doc::Doc::new(parent.name.child(name), ty);
                     // TODO: use inner_html() instead
-                    doc.description = Some(element.text_contents());
+                    doc.description = element.first_child().map(|n| n.text_contents());
                     variants.push(doc);
                 }
                 name = None;
