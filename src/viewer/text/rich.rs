@@ -43,10 +43,15 @@ impl super::Printer for RichTextRenderer {
     }
 
     fn print_heading(&self, level: usize, s: &str) -> io::Result<()> {
-        write!(io::stdout(), "{}", termion::style::Bold)?;
+        if level < 4 {
+            write!(io::stdout(), "{}", termion::style::Bold)?;
+        }
         let heading = format!("<h{level}>{text}</h{level}>", level = level, text = s);
         self.print_html(&heading)?;
-        write!(io::stdout(), "{}", termion::style::Reset)
+        if level < 4 {
+            write!(io::stdout(), "{}", termion::style::Reset)?;
+        }
+        Ok(())
     }
 
     fn println(&self) -> io::Result<()> {
