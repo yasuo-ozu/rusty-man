@@ -14,6 +14,7 @@
 use std::path;
 
 use anyhow::Context;
+use markup5ever::local_name;
 
 use crate::doc;
 
@@ -165,8 +166,7 @@ fn get_fields(
     let mut name: Option<String> = None;
     let mut definition: Option<String> = None;
     while let Some(element) = &next {
-        if is_element(element, &markup5ever::local_name!("span")) && has_class(element, ty.class())
-        {
+        if is_element(element, &local_name!("span")) && has_class(element, ty.class()) {
             if let Some(name) = &name {
                 let mut doc = doc::Doc::new(parent.name.child(name), ty);
                 doc.definition = definition.take();
@@ -176,7 +176,7 @@ fn get_fields(
                 .and_then(|s| s.splitn(2, '.').nth(1).map(ToOwned::to_owned));
             definition = Some(get_html(element)?);
             next = element.next_sibling();
-        } else if is_element(element, &markup5ever::local_name!("div")) {
+        } else if is_element(element, &local_name!("div")) {
             if has_class(element, "docblock") {
                 if let Some(name) = &name {
                     let mut doc = doc::Doc::new(parent.name.child(name), ty);
@@ -220,13 +220,12 @@ fn get_methods(
 
     let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
     while let Some(subheading) = &next {
-        if is_element(subheading, &markup5ever::local_name!("h3")) && has_class(subheading, "impl")
-        {
+        if is_element(subheading, &local_name!("h3")) && has_class(subheading, "impl") {
             if let Some(title_element) = subheading.first_child() {
                 let title = get_html(&title_element)?;
                 next = subheading.next_sibling();
                 if let Some(impl_items) = &next {
-                    if is_element(impl_items, &markup5ever::local_name!("div"))
+                    if is_element(impl_items, &local_name!("div"))
                         && has_class(impl_items, "impl-items")
                     {
                         let group = get_method_group(
@@ -234,7 +233,7 @@ fn get_methods(
                             Some(title),
                             &impl_items,
                             doc::ItemType::Method,
-                            markup5ever::local_name!("h4"),
+                            local_name!("h4"),
                         )?;
                         if !group.members.is_empty() {
                             groups.push(group);
@@ -259,7 +258,7 @@ fn get_methods(
                 Some(title),
                 &impl_items,
                 doc::ItemType::Method,
-                markup5ever::local_name!("h4"),
+                local_name!("h4"),
             )?;
             if !group.members.is_empty() {
                 groups.push(group);
@@ -276,7 +275,7 @@ fn get_methods(
                 Some(title),
                 &methods,
                 doc::ItemType::TyMethod,
-                markup5ever::local_name!("h3"),
+                local_name!("h3"),
             )?;
             if !group.members.is_empty() {
                 groups.push(group);
@@ -293,7 +292,7 @@ fn get_methods(
                 Some(title),
                 &methods,
                 doc::ItemType::TyMethod,
-                markup5ever::local_name!("h3"),
+                local_name!("h3"),
             )?;
             if !group.members.is_empty() {
                 groups.push(group);
@@ -319,7 +318,7 @@ fn get_assoc_types(
                 None,
                 &methods,
                 doc::ItemType::AssocType,
-                markup5ever::local_name!("h3"),
+                local_name!("h3"),
             )?;
             if !group.members.is_empty() {
                 groups.push(group);
@@ -351,9 +350,7 @@ fn get_method_group(
             name = get_node_attribute(&element, "id")
                 .and_then(|a| a.splitn(2, '.').nth(1).map(ToOwned::to_owned));
             definition = element.first_child().map(|n| get_html(&n)).transpose()?;
-        } else if is_element(&element, &markup5ever::local_name!("div"))
-            && has_class(&element, "docblock")
-        {
+        } else if is_element(&element, &local_name!("div")) && has_class(&element, "docblock") {
             // TODO: inner html
             if let Some(name) = name {
                 let mut doc = doc::Doc::new(parent.name.child(&name), ty);
@@ -381,7 +378,7 @@ fn get_variants(
     let mut name: Option<String> = None;
     let mut definition: Option<String> = None;
     while let Some(element) = &next {
-        if is_element(element, &markup5ever::local_name!("div")) {
+        if is_element(element, &local_name!("div")) {
             if has_class(element, ty.class()) {
                 if let Some(name) = &name {
                     variants.push(doc::Doc::new(parent.name.child(name), ty));
