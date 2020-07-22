@@ -379,6 +379,7 @@ fn get_variants(
 
     let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
     let mut name: Option<String> = None;
+    let mut definition: Option<String> = None;
     while let Some(element) = &next {
         if is_element(element, &markup5ever::local_name!("div")) {
             if has_class(element, ty.class()) {
@@ -387,11 +388,13 @@ fn get_variants(
                 }
                 name = get_node_attribute(element, "id")
                     .and_then(|s| s.splitn(2, '.').nth(1).map(ToOwned::to_owned));
+                definition = Some(get_html(element)?);
             } else if has_class(element, "docblock") {
                 if let Some(name) = &name {
                     let mut doc = doc::Doc::new(parent.name.child(name), ty);
                     // TODO: use inner_html() instead
                     doc.description = element.first_child().map(|n| n.text_contents());
+                    doc.definition = definition.take();
                     variants.push(doc);
                 }
                 name = None;
@@ -400,7 +403,9 @@ fn get_variants(
             next = element.next_sibling();
         } else {
             if let Some(name) = &name {
-                variants.push(doc::Doc::new(parent.name.child(name), ty));
+                let mut doc = doc::Doc::new(parent.name.child(name), ty);
+                doc.definition = definition.take();
+                variants.push(doc);
             }
             next = None;
         }
