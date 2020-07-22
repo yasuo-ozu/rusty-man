@@ -207,6 +207,70 @@ impl ops::Deref for Fqn {
     }
 }
 
+impl ItemType {
+    pub fn group_name(&self) -> &str {
+        match self {
+            ItemType::Module => "Modules",
+            ItemType::ExternCrate => "Extern Crates",
+            ItemType::Import => "Imports",
+            ItemType::Struct => "Structs",
+            ItemType::Enum => "Enums",
+            ItemType::Function => "Functions",
+            ItemType::Typedef => "Typedefs",
+            ItemType::Static => "Statics",
+            ItemType::Trait => "Traits",
+            ItemType::Impl => "Impls",
+            ItemType::TyMethod => "Required Methods",
+            ItemType::Method => "Methods",
+            ItemType::StructField => "Fields",
+            ItemType::Variant => "Variants",
+            ItemType::Macro => "Macros",
+            ItemType::Primitive => "Primitives",
+            ItemType::AssocType => "Associated Types",
+            ItemType::Constant => "Constants",
+            ItemType::AssocConst => "Associated Consts",
+            ItemType::Union => "Unions",
+            ItemType::ForeignType => "Foreign Types",
+            ItemType::Keyword => "Keywords",
+            ItemType::OpaqueTy => "Opaque Types",
+            ItemType::ProcAttribute => "Proc Attributes",
+            ItemType::ProcDerive => "Proc Derives",
+            ItemType::TraitAlias => "Trait Aliases",
+        }
+    }
+
+    pub fn group_id(&self) -> &str {
+        match self {
+            ItemType::Module => "modules",
+            ItemType::ExternCrate => "extern-crates",
+            ItemType::Import => "imports",
+            ItemType::Struct => "structs",
+            ItemType::Enum => "enums",
+            ItemType::Function => "functions",
+            ItemType::Typedef => "typedefs",
+            ItemType::Static => "statics",
+            ItemType::Trait => "traits",
+            ItemType::Impl => "impls",
+            ItemType::TyMethod => "required-methods",
+            ItemType::Method => "methods",
+            ItemType::StructField => "fields",
+            ItemType::Variant => "variants",
+            ItemType::Macro => "macros",
+            ItemType::Primitive => "primitives",
+            ItemType::AssocType => "associated-types",
+            ItemType::Constant => "constants",
+            ItemType::AssocConst => "associated-consts",
+            ItemType::Union => "unions",
+            ItemType::ForeignType => "foreign-types",
+            ItemType::Keyword => "keywords",
+            ItemType::OpaqueTy => "opaque-types",
+            ItemType::ProcAttribute => "proc-attributes",
+            ItemType::ProcDerive => "proc-derives",
+            ItemType::TraitAlias => "trait-aliases",
+        }
+    }
+}
+
 impl str::FromStr for ItemType {
     type Err = anyhow::Error;
 

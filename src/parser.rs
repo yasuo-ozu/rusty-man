@@ -89,20 +89,20 @@ pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow:
     Ok(doc)
 }
 
-const MODULE_MEMBER_TYPES: &[(&str, &str)] = &[
-    ("Extern Crates", "extern-crates"),
-    ("Imports", "imports"),
-    ("Primitives", "primitives"),
-    ("Modules", "modules"),
-    ("Macros", "macros"),
-    ("Structs", "structs"),
-    ("Enums", "enums"),
-    ("Constants", "constants"),
-    ("Statics", "statics"),
-    ("Traits", "traits"),
-    ("Functions", "functions"),
-    ("Typedefs", "typedefs"),
-    ("Unions", "unions"),
+const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
+    doc::ItemType::ExternCrate,
+    doc::ItemType::Import,
+    doc::ItemType::Primitive,
+    doc::ItemType::Module,
+    doc::ItemType::Macro,
+    doc::ItemType::Struct,
+    doc::ItemType::Enum,
+    doc::ItemType::Constant,
+    doc::ItemType::Static,
+    doc::ItemType::Trait,
+    doc::ItemType::Function,
+    doc::ItemType::Typedef,
+    doc::ItemType::Union,
 ];
 
 pub fn parse_module_doc<P: AsRef<path::Path>>(
@@ -116,10 +116,10 @@ pub fn parse_module_doc<P: AsRef<path::Path>>(
     let mut doc = doc::Doc::new(name.clone());
     doc.title = Some(get_html(heading.as_node())?);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
-    for (heading, id) in MODULE_MEMBER_TYPES {
-        let members = get_members(&document, name, id)?;
+    for item_type in MODULE_MEMBER_TYPES {
+        let members = get_members(&document, name, item_type.group_id())?;
         if !members.is_empty() {
-            doc.members.push((heading.to_string(), members));
+            doc.members.push((item_type.group_name().to_string(), members));
         }
     }
     Ok(doc)
