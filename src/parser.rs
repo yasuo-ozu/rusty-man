@@ -89,6 +89,10 @@ pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
+    let (ty, groups) = get_assoc_types(&document, item)?;
+    if !groups.is_empty() {
+        doc.groups.push((ty, groups));
+    }
     let (ty, groups) = get_methods(&document, item)?;
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
@@ -120,7 +124,7 @@ pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     for item_type in MODULE_MEMBER_TYPES {
-        let mut group = doc::MemberGroup::new();
+        let mut group = doc::MemberGroup::new(None);
         group.members = get_members(&document, item, *item_type)?;
         if !group.members.is_empty() {
             doc.groups.push((*item_type, vec![group]));
@@ -155,15 +159,22 @@ fn get_methods(
 
     let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
     while let Some(subheading) = &next {
-        if is_element(subheading, markup5ever::local_name!("h3")) && has_class(subheading, "impl") {
-            if let Some(name_element) = subheading.first_child() {
-                let name = get_html(&name_element)?;
+        if is_element(subheading, &markup5ever::local_name!("h3")) && has_class(subheading, "impl")
+        {
+            if let Some(title_element) = subheading.first_child() {
+                let title = get_html(&title_element)?;
                 next = subheading.next_sibling();
                 if let Some(impl_items) = &next {
-                    if is_element(impl_items, markup5ever::local_name!("div"))
+                    if is_element(impl_items, &markup5ever::local_name!("div"))
                         && has_class(impl_items, "impl-items")
                     {
-                        let group = get_method_group(parent, name, &impl_items)?;
+                        let group = get_method_group(
+                            parent,
+                            Some(title),
+                            &impl_items,
+                            doc::ItemType::Method,
+                            markup5ever::local_name!("h4"),
+                        )?;
                         if !group.members.is_empty() {
                             groups.push(group);
                         }
@@ -182,7 +193,73 @@ fn get_methods(
     if let Some(heading) = heading {
         let title = get_html(heading.as_node())?;
         if let Some(impl_items) = heading.as_node().next_sibling() {
-            let group = get_method_group(parent, title, &impl_items)?;
+            let group = get_method_group(
+                parent,
+                Some(title),
+                &impl_items,
+                doc::ItemType::Method,
+                markup5ever::local_name!("h4"),
+            )?;
+            if !group.members.is_empty() {
+                groups.push(group);
+            }
+        }
+    }
+
+    let heading = select_first(document, "#required-methods")?;
+    if let Some(heading) = heading {
+        if let Some(methods) = heading.as_node().next_sibling() {
+            let title = "Required Methods".to_owned();
+            let group = get_method_group(
+                parent,
+                Some(title),
+                &methods,
+                doc::ItemType::TyMethod,
+                markup5ever::local_name!("h3"),
+            )?;
+            if !group.members.is_empty() {
+                groups.push(group);
+            }
+        }
+    }
+
+    let heading = select_first(document, "#provided-methods")?;
+    if let Some(heading) = heading {
+        if let Some(methods) = heading.as_node().next_sibling() {
+            let title = "Provided Methods".to_owned();
+            let group = get_method_group(
+                parent,
+                Some(title),
+                &methods,
+                doc::ItemType::TyMethod,
+                markup5ever::local_name!("h3"),
+            )?;
+            if !group.members.is_empty() {
+                groups.push(group);
+            }
+        }
+    }
+
+    Ok((ty, groups))
+}
+
+fn get_assoc_types(
+    document: &kuchiki::NodeRef,
+    parent: &doc::Item,
+) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
+    let ty = doc::ItemType::AssocType;
+    let mut groups: Vec<doc::MemberGroup> = Vec::new();
+
+    let heading = select_first(document, "#associated-types")?;
+    if let Some(heading) = heading {
+        if let Some(methods) = heading.as_node().next_sibling() {
+            let group = get_method_group(
+                parent,
+                None,
+                &methods,
+                doc::ItemType::AssocType,
+                markup5ever::local_name!("h3"),
+            )?;
             if !group.members.is_empty() {
                 groups.push(group);
             }
@@ -194,29 +271,31 @@ fn get_methods(
 
 fn get_method_group(
     parent: &doc::Item,
-    title: String,
+    title: Option<String>,
     impl_items: &kuchiki::NodeRef,
+    ty: doc::ItemType,
+    heading_type: markup5ever::LocalName,
 ) -> anyhow::Result<doc::MemberGroup> {
-    let mut group = doc::MemberGroup::with_title(title);
+    let mut group = doc::MemberGroup::new(title);
 
     let mut name: Option<String> = None;
     let mut definition: Option<String> = None;
     for element in impl_items.children() {
-        if is_element(&element, markup5ever::local_name!("h4")) && has_class(&element, "method") {
+        if is_element(&element, &heading_type) && has_class(&element, "method") {
             if let Some(name) = name {
-                let mut doc = doc::Doc::new(parent.name.child(&name), doc::ItemType::Method);
+                let mut doc = doc::Doc::new(parent.name.child(&name), ty);
                 doc.definition = definition;
                 group.members.push(doc);
             }
             name = get_node_attribute(&element, "id")
                 .and_then(|a| a.splitn(2, '.').nth(1).map(ToOwned::to_owned));
             definition = element.first_child().map(|n| get_html(&n)).transpose()?;
-        } else if is_element(&element, markup5ever::local_name!("div"))
+        } else if is_element(&element, &markup5ever::local_name!("div"))
             && has_class(&element, "docblock")
         {
             // TODO: inner html
             if let Some(name) = name {
-                let mut doc = doc::Doc::new(parent.name.child(&name), doc::ItemType::Method);
+                let mut doc = doc::Doc::new(parent.name.child(&name), ty);
                 doc.definition = definition;
                 doc.description = element.first_child().map(|n| n.text_contents());
                 group.members.push(doc);
@@ -240,7 +319,7 @@ fn get_variants(
     let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
     let mut name: Option<String> = None;
     while let Some(element) = &next {
-        if is_element(element, markup5ever::local_name!("div")) {
+        if is_element(element, &markup5ever::local_name!("div")) {
             if has_class(element, ty.class()) {
                 if let Some(name) = &name {
                     variants.push(doc::Doc::new(parent.name.child(name), ty));
@@ -268,7 +347,7 @@ fn get_variants(
 
     let mut groups: Vec<doc::MemberGroup> = Vec::new();
     if !variants.is_empty() {
-        let mut group = doc::MemberGroup::new();
+        let mut group = doc::MemberGroup::new(None);
         group.members = variants;
         groups.push(group);
     }
@@ -323,9 +402,9 @@ fn next_sibling_element(node: &kuchiki::NodeRef) -> Option<kuchiki::NodeRef> {
     next
 }
 
-fn is_element(node: &kuchiki::NodeRef, name: markup5ever::LocalName) -> bool {
+fn is_element(node: &kuchiki::NodeRef, name: &markup5ever::LocalName) -> bool {
     node.as_element()
-        .map(|e| e.name.local == name)
+        .map(|e| &e.name.local == name)
         .unwrap_or(false)
 }
 

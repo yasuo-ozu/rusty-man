@@ -43,13 +43,29 @@ impl<P: Printer> TextViewer<P> {
                     self.printer.print_heading(3, title)?;
                 }
 
-                self.print_list(group.members.iter().map(|i| {
-                    if let Some(description) = &i.description {
-                        format!("{}<br/>{}", i.name.last(), description)
-                    } else {
-                        i.name.last().to_owned()
+                if doc.ty == doc::ItemType::Module {
+                    self.print_list(group.members.iter().map(|i| {
+                        if let Some(description) = &i.description {
+                            format!("{}<br/>{}", i.name.last(), description)
+                        } else {
+                            i.name.last().to_owned()
+                        }
+                    }))?;
+                } else {
+                    for member in &group.members {
+                        self.printer.println()?;
+                        self.printer.print_heading(4, member.name.last())?;
+                        if let Some(definition) = &member.definition {
+                            self.printer.print_html(definition)?;
+                        }
+                        if member.definition.is_some() && member.description.is_some() {
+                            self.printer.println()?;
+                        }
+                        if let Some(description) = &member.description {
+                            self.printer.print_html(description)?;
+                        }
                     }
-                }))?;
+                }
             }
         }
         Ok(())

@@ -468,16 +468,9 @@ impl Doc {
 }
 
 impl MemberGroup {
-    pub fn new() -> Self {
+    pub fn new(title: Option<String>) -> Self {
         MemberGroup {
-            title: None,
-            members: Vec::new(),
-        }
-    }
-
-    pub fn with_title(title: String) -> Self {
-        MemberGroup {
-            title: Some(title),
+            title,
             members: Vec::new(),
         }
     }
