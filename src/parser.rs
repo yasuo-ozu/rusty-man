@@ -102,6 +102,10 @@ pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
+    let (ty, groups) = get_implementations(&document, item)?;
+    if !groups.is_empty() {
+        doc.groups.push((ty, groups));
+    }
 
     Ok(doc)
 }
@@ -361,6 +365,66 @@ fn get_variants(
     }
 
     Ok((ty, variants.into_member_groups(None)))
+}
+
+fn get_implementations(
+    document: &kuchiki::NodeRef,
+    parent: &doc::Item,
+) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
+    let mut groups: Vec<doc::MemberGroup> = Vec::new();
+
+    if let Some(group) =
+        get_implementation_group(document, parent, "Trait Implementations", "implementations")?
+    {
+        groups.push(group);
+    }
+    if let Some(group) = get_implementation_group(
+        document,
+        parent,
+        "Auto Trait Implementations",
+        "synthetic-implementations",
+    )? {
+        groups.push(group);
+    }
+    if let Some(group) = get_implementation_group(
+        document,
+        parent,
+        "Blanket Implementations",
+        "blanket-implementations",
+    )? {
+        groups.push(group);
+    }
+
+    Ok((doc::ItemType::Impl, groups))
+}
+
+fn get_implementation_group(
+    document: &kuchiki::NodeRef,
+    parent: &doc::Item,
+    title: &str,
+    id: &str,
+) -> anyhow::Result<Option<doc::MemberGroup>> {
+    let ty = doc::ItemType::Impl;
+    let mut impls = MemberDocs::new(parent, ty);
+    let heading = select_first(document, &format!("#{}", id))?;
+
+    let next = heading.and_then(|n| n.as_node().next_sibling());
+    if let Some(div) = next {
+        for item in div.children() {
+            if is_element(&item, &local_name!("h3")) && has_class(&item, "impl") {
+                let code = item.first_child();
+                let a = code
+                    .as_ref()
+                    .and_then(|n| select_first(n, "a").transpose())
+                    .transpose()?;
+                let mut name = a.map(|n| n.as_node().text_contents());
+                let mut definition = code.map(|n| get_html(&n)).transpose()?;
+                impls.push(&mut name, &mut definition, None)?;
+            }
+        }
+    }
+
+    Ok(impls.into_member_group(Some(title.to_owned())))
 }
 
 fn get_members(
