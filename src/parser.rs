@@ -80,7 +80,7 @@ pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow:
     let document = parse_file(path)?;
     let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
     let definition = select_first(&document, ".docblock.type-decl")?;
-    let description = select_first(&document, ".docblock:not(.type-decl)")?;
+    let description = select_first(&document, "#main > .docblock:not(.type-decl)")?;
 
     let mut doc = doc::Doc::new(name.clone());
     doc.title = Some(get_html(heading.as_node())?);
