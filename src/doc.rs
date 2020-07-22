@@ -65,9 +65,10 @@ pub struct Item {
     pub path: path::PathBuf,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Doc {
     pub name: Fqn,
+    pub ty: ItemType,
     pub title: Option<String>,
     pub description: Option<String>,
     pub definition: Option<String>,
@@ -375,9 +376,9 @@ impl Item {
             | ItemType::StructField
             | ItemType::Variant
             | ItemType::AssocType
-            | ItemType::AssocConst => parser::parse_member_doc(&self.path, &self.name),
-            ItemType::Module => parser::parse_module_doc(&self.path, &self.name),
-            _ => parser::parse_item_doc(&self.path, &self.name),
+            | ItemType::AssocConst => parser::parse_member_doc(&self),
+            ItemType::Module => parser::parse_module_doc(&self),
+            _ => parser::parse_item_doc(&self),
         }
     }
 
@@ -388,10 +389,14 @@ impl Item {
 }
 
 impl Doc {
-    pub fn new(name: Fqn) -> Self {
+    pub fn new(name: Fqn, ty: ItemType) -> Self {
         Self {
             name,
-            ..Default::default()
+            ty,
+            title: Default::default(),
+            description: Default::default(),
+            definition: Default::default(),
+            members: Default::default(),
         }
     }
 }

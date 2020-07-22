@@ -76,13 +76,13 @@ fn select_first(
     select(element, selector).map(|mut i| i.next())
 }
 
-pub fn parse_item_doc<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
-    let document = parse_file(path)?;
+pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
+    let document = parse_file(&item.path)?;
     let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
     let definition = select_first(&document, ".docblock.type-decl")?;
     let description = select_first(&document, "#main > .docblock:not(.type-decl)")?;
 
-    let mut doc = doc::Doc::new(name.clone());
+    let mut doc = doc::Doc::new(item.name.clone(), item.ty);
     doc.title = Some(get_html(heading.as_node())?);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
@@ -105,40 +105,35 @@ const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
     doc::ItemType::Union,
 ];
 
-pub fn parse_module_doc<P: AsRef<path::Path>>(
-    path: P,
-    name: &doc::Fqn,
-) -> anyhow::Result<doc::Doc> {
-    let document = parse_file(path)?;
+pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
+    let document = parse_file(&item.path)?;
     let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
     let description = select_first(&document, ".docblock")?;
 
-    let mut doc = doc::Doc::new(name.clone());
+    let mut doc = doc::Doc::new(item.name.clone(), item.ty);
     doc.title = Some(get_html(heading.as_node())?);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     for item_type in MODULE_MEMBER_TYPES {
-        let members = get_members(&document, name, item_type.group_id())?;
+        let members = get_members(&document, item, *item_type)?;
         if !members.is_empty() {
-            doc.members.push((item_type.group_name().to_string(), members));
+            doc.members
+                .push((item_type.group_name().to_string(), members));
         }
     }
     Ok(doc)
 }
 
-pub fn parse_member_doc<P: AsRef<path::Path>>(
-    path: P,
-    name: &doc::Fqn,
-) -> anyhow::Result<doc::Doc> {
-    let document = parse_file(path)?;
-    let member = get_member(&document, name.last())?
-        .with_context(|| format!("Could not find member {}", name))?;
+pub fn parse_member_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
+    let document = parse_file(&item.path)?;
+    let member = get_member(&document, item.name.last())?
+        .with_context(|| format!("Could not find member {}", &item.name))?;
     let heading = member
         .as_node()
         .parent()
-        .with_context(|| format!("The member {} does not have a parent", name))?;
+        .with_context(|| format!("The member {} does not have a parent", &item.name))?;
     let docblock = heading.next_sibling();
 
-    let mut doc = doc::Doc::new(name.clone());
+    let mut doc = doc::Doc::new(item.name.clone(), item.ty);
     doc.definition = Some(get_html(member.as_node())?);
     doc.description = docblock.map(|n| get_html(&n)).transpose()?;
     Ok(doc)
@@ -146,18 +141,17 @@ pub fn parse_member_doc<P: AsRef<path::Path>>(
 
 fn get_members(
     document: &kuchiki::NodeRef,
-    base_name: &doc::Fqn,
-    id: &str,
+    parent: &doc::Item,
+    ty: doc::ItemType,
 ) -> anyhow::Result<Vec<doc::Doc>> {
     let mut members: Vec<doc::Doc> = Vec::new();
-    if let Some(table) = select_first(document, &format!("#{} + table", id))? {
-        // On module pages, the members are listed in tables
+    if let Some(table) = select_first(document, &format!("#{} + table", ty.group_id()))? {
         let items = select(table.as_node(), "td:first-child :first-child")?;
         for item in items {
             let item_name = item.as_node().text_contents();
             let docblock = item.as_node().parent().and_then(|n| n.next_sibling());
 
-            let mut doc = doc::Doc::new(base_name.child(&item_name));
+            let mut doc = doc::Doc::new(parent.name.child(&item_name), ty);
             // We would like to use inner_html() here, but that is currently not implemented in
             // kuchiki
             doc.description = docblock.map(|n| n.text_contents());
@@ -204,9 +198,11 @@ mod tests {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeRef.html");
         let name: doc::Fqn = "kuchiki::NodeRef".to_owned().into();
-        let doc = super::parse_item_doc(&path, &name).unwrap();
+        let item = doc::Item::new(name.clone(), path, doc::ItemType::Struct);
+        let doc = super::parse_item_doc(&item).unwrap();
 
         assert_eq!(name, doc.name);
+        assert_eq!(doc::ItemType::Struct, doc.ty);
         assert_eq!(
             "<span class=\"in-band\">\
              Struct <a href=\"index.html\">kuchiki</a>::<wbr>\
@@ -223,9 +219,11 @@ mod tests {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeDataRef.html");
         let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
-        let doc = super::parse_member_doc(&path, &name).unwrap();
+        let item = doc::Item::new(name.clone(), path, doc::ItemType::Method);
+        let doc = super::parse_member_doc(&item).unwrap();
 
         assert_eq!(name, doc.name);
+        assert_eq!(doc::ItemType::Method, doc.ty);
         assert!(doc.title.is_none());
         assert_eq!(
             "<code id=\"as_node.v\">\
