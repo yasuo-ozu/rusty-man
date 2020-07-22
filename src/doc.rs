@@ -69,7 +69,6 @@ pub struct Item {
 pub struct Doc {
     pub name: Fqn,
     pub ty: ItemType,
-    pub title: Option<String>,
     pub description: Option<String>,
     pub definition: Option<String>,
     pub members: Vec<(String, Vec<Doc>)>,
@@ -209,6 +208,37 @@ impl ops::Deref for Fqn {
 }
 
 impl ItemType {
+    pub fn name(&self) -> &str {
+        match self {
+            ItemType::Module => "Module",
+            ItemType::ExternCrate => "Extern Crate",
+            ItemType::Import => "Import",
+            ItemType::Struct => "Struct",
+            ItemType::Enum => "Enum",
+            ItemType::Function => "Function",
+            ItemType::Typedef => "Typedef",
+            ItemType::Static => "Static",
+            ItemType::Trait => "Trait",
+            ItemType::Impl => "Impl",
+            ItemType::TyMethod => "Required Method",
+            ItemType::Method => "Method",
+            ItemType::StructField => "Field",
+            ItemType::Variant => "Variant",
+            ItemType::Macro => "Macro",
+            ItemType::Primitive => "Primitive",
+            ItemType::AssocType => "Associated Type",
+            ItemType::Constant => "Constant",
+            ItemType::AssocConst => "Associated Const",
+            ItemType::Union => "Union",
+            ItemType::ForeignType => "Foreign Type",
+            ItemType::Keyword => "Keyword",
+            ItemType::OpaqueTy => "Opaque Type",
+            ItemType::ProcAttribute => "Proc Attribute",
+            ItemType::ProcDerive => "Proc Derive",
+            ItemType::TraitAlias => "Trait Alias",
+        }
+    }
+
     pub fn group_name(&self) -> &str {
         match self {
             ItemType::Module => "Modules",
@@ -393,7 +423,6 @@ impl Doc {
         Self {
             name,
             ty,
-            title: Default::default(),
             description: Default::default(),
             definition: Default::default(),
             members: Default::default(),

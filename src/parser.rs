@@ -78,12 +78,10 @@ fn select_first(
 
 pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let document = parse_file(&item.path)?;
-    let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
     let definition = select_first(&document, ".docblock.type-decl")?;
     let description = select_first(&document, "#main > .docblock:not(.type-decl)")?;
 
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
-    doc.title = Some(get_html(heading.as_node())?);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
     Ok(doc)
@@ -107,11 +105,9 @@ const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
 
 pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let document = parse_file(&item.path)?;
-    let heading = select_first(&document, ".fqn .in-band")?.context("Could not find heading")?;
     let description = select_first(&document, ".docblock")?;
 
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
-    doc.title = Some(get_html(heading.as_node())?);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     for item_type in MODULE_MEMBER_TYPES {
         let members = get_members(&document, item, *item_type)?;
@@ -203,13 +199,6 @@ mod tests {
 
         assert_eq!(name, doc.name);
         assert_eq!(doc::ItemType::Struct, doc.ty);
-        assert_eq!(
-            "<span class=\"in-band\">\
-             Struct <a href=\"index.html\">kuchiki</a>::<wbr>\
-             <a class=\"struct\" href=\"\">NodeRef</a>\
-             </span>",
-            &doc.title.unwrap()
-        );
         assert!(doc.definition.is_some());
         assert!(doc.description.is_some());
     }
@@ -224,7 +213,6 @@ mod tests {
 
         assert_eq!(name, doc.name);
         assert_eq!(doc::ItemType::Method, doc.ty);
-        assert!(doc.title.is_none());
         assert_eq!(
             "<code id=\"as_node.v\">\
              pub fn <a class=\"fnname\" href=\"#method.as_node\">as_node</a>(&amp;self) \

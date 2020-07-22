@@ -29,11 +29,8 @@ impl<P: Printer> TextViewer<P> {
     }
 
     fn print_doc(&self, doc: &doc::Doc) -> io::Result<()> {
-        if let Some(title) = &doc.title {
-            self.printer.print_heading(1, title)?;
-        } else {
-            self.printer.print_heading(1, doc.name.as_ref())?;
-        }
+        self.printer
+            .print_heading(1, &format!("{} {}", doc.ty.name(), doc.name.as_ref()))?;
         self.print_opt(doc.definition.as_deref())?;
         self.print_opt(doc.description.as_deref())?;
         for (heading, items) in &doc.members {
