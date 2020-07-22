@@ -37,9 +37,26 @@ pub fn find_item<P: AsRef<path::Path>>(path: P, item: &str) -> anyhow::Result<Op
     Ok(item)
 }
 
-pub fn find_member<P: AsRef<path::Path>>(path: P, item: &str) -> anyhow::Result<bool> {
-    let document = parse_file(path)?;
-    Ok(get_member(&document, item)?.is_some())
+pub fn find_member<P: AsRef<path::Path>>(
+    path: P,
+    name: &doc::Fqn,
+) -> anyhow::Result<Option<doc::Item>> {
+    let document = parse_file(path.as_ref())?;
+    if let Some(member) = get_member(&document, name.last())? {
+        let parent = member
+            .as_node()
+            .parent()
+            .context("Member element does not have a parent")?;
+        if let Some(parent_id) = get_attribute(parent.as_element().unwrap(), "id") {
+            let item_type: doc::ItemType = parent_id.splitn(2, '.').next().unwrap().parse()?;
+            return Ok(Some(doc::Item::new(
+                name.clone(),
+                path.as_ref().to_owned(),
+                item_type,
+            )));
+        }
+    }
+    Ok(None)
 }
 
 fn select(
@@ -154,11 +171,7 @@ fn get_member(
     document: &kuchiki::NodeRef,
     name: &str,
 ) -> anyhow::Result<Option<kuchiki::NodeDataRef<kuchiki::ElementData>>> {
-    document
-        .select(&format!("#{}\\.v", name))
-        .ok()
-        .context("Could not select member by id")
-        .map(|mut i| i.next())
+    select_first(document, &format!("#{}\\.v", name))
 }
 
 fn get_attribute(element: &kuchiki::ElementData, name: &str) -> Option<String> {

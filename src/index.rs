@@ -57,9 +57,9 @@ struct CrateData {
     paths: Vec<(usize, String)>,
 }
 
-#[derive(Debug, Default, PartialEq, serde_tuple::Deserialize_tuple)]
+#[derive(Debug, PartialEq, serde_tuple::Deserialize_tuple)]
 struct ItemData {
-    ty: usize,
+    ty: doc::ItemType,
     name: String,
     path: String,
     desc: String,
@@ -122,8 +122,7 @@ impl Index {
                     &item.path
                 };
 
-                if item.ty == 16 {
-                    // Skip associated types (== item type 16)
+                if item.ty == doc::ItemType::AssocType {
                     continue;
                 }
 
@@ -152,6 +151,7 @@ impl Index {
 #[cfg(test)]
 mod tests {
     use super::{CrateData, Data, ItemData};
+    use crate::doc::ItemType;
 
     #[test]
     fn test_empty() {
@@ -174,11 +174,14 @@ mod tests {
     fn test_one_item() {
         let mut expected: Data = Default::default();
         let mut krate: CrateData = Default::default();
-        let mut item: ItemData = Default::default();
-        item.name = "name".to_owned();
-        item.path = "path".to_owned();
-        item.desc = "desc".to_owned();
-        krate.items.push(item);
+        krate.items.push(ItemData {
+            ty: ItemType::Module,
+            name: "name".to_owned(),
+            path: "path".to_owned(),
+            desc: "desc".to_owned(),
+            parent: None,
+            _ignored: Default::default(),
+        });
         expected.crates.insert("test".to_owned(), krate);
         let actual: Data = serde_json::from_str(
             "{\"test\": {\"i\": [[0, \"name\", \"path\", \"desc\", null, null]], \"p\": []}}",

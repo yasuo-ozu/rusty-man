@@ -21,12 +21,35 @@ pub struct Name {
 #[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Fqn(Name);
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, serde_repr::Deserialize_repr)]
+#[repr(u8)]
 pub enum ItemType {
-    Crate,
-    Module,
-    Item,
-    Member,
+    Module = 0,
+    ExternCrate = 1,
+    Import = 2,
+    Struct = 3,
+    Enum = 4,
+    Function = 5,
+    Typedef = 6,
+    Static = 7,
+    Trait = 8,
+    Impl = 9,
+    TyMethod = 10,
+    Method = 11,
+    StructField = 12,
+    Variant = 13,
+    Macro = 14,
+    Primitive = 15,
+    AssocType = 16,
+    Constant = 17,
+    AssocConst = 18,
+    Union = 19,
+    ForeignType = 20,
+    Keyword = 21,
+    OpaqueTy = 22,
+    ProcAttribute = 23,
+    ProcDerive = 24,
+    TraitAlias = 25,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -143,10 +166,6 @@ impl Fqn {
         self.first()
     }
 
-    pub fn is_crate(&self) -> bool {
-        self.0.is_singleton()
-    }
-
     pub fn parent(&self) -> Option<Self> {
         self.0.parent().map(From::from)
     }
@@ -188,6 +207,42 @@ impl ops::Deref for Fqn {
     }
 }
 
+impl str::FromStr for ItemType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "mod" => Ok(ItemType::Module),
+            "externcrate" => Ok(ItemType::ExternCrate),
+            "import" => Ok(ItemType::Import),
+            "struct" => Ok(ItemType::Struct),
+            "union" => Ok(ItemType::Union),
+            "enum" => Ok(ItemType::Enum),
+            "fn" => Ok(ItemType::Function),
+            "type" => Ok(ItemType::Typedef),
+            "static" => Ok(ItemType::Static),
+            "trait" => Ok(ItemType::Trait),
+            "impl" => Ok(ItemType::Impl),
+            "tymethod" => Ok(ItemType::TyMethod),
+            "method" => Ok(ItemType::Method),
+            "structfield" => Ok(ItemType::StructField),
+            "variant" => Ok(ItemType::Variant),
+            "macro" => Ok(ItemType::Macro),
+            "primitive" => Ok(ItemType::Primitive),
+            "associatedtype" => Ok(ItemType::AssocType),
+            "constant" => Ok(ItemType::Constant),
+            "associatedconstant" => Ok(ItemType::AssocConst),
+            "foreigntype" => Ok(ItemType::ForeignType),
+            "keyword" => Ok(ItemType::Keyword),
+            "opaque" => Ok(ItemType::OpaqueTy),
+            "attr" => Ok(ItemType::ProcAttribute),
+            "derive" => Ok(ItemType::ProcDerive),
+            "traitalias" => Ok(ItemType::TraitAlias),
+            _ => Err(anyhow::anyhow!("Unsupported item type: {}", s)),
+        }
+    }
+}
+
 impl Crate {
     pub fn new(name: String, path: path::PathBuf) -> Self {
         Crate { name, path }
@@ -198,10 +253,12 @@ impl Crate {
             if let Some(local_name) = name.rest() {
                 if let Some(path) = parser::find_item(self.path.join("all.html"), local_name)? {
                     let path = path::PathBuf::from(path);
+                    let file_name = path.file_name().unwrap().to_str().unwrap();
+                    let item_type: ItemType = file_name.splitn(2, '.').next().unwrap().parse()?;
                     return Ok(Some(Item::new(
                         name.clone(),
                         self.path.join(path),
-                        ItemType::Item,
+                        item_type,
                     )));
                 }
             }
@@ -221,12 +278,7 @@ impl Crate {
             };
             let path = self.path.join(module_path).join("index.html");
             if path.is_file() {
-                let item_type = if name.is_crate() {
-                    ItemType::Crate
-                } else {
-                    ItemType::Module
-                };
-                Some(Item::new(name.clone(), path, item_type))
+                Some(Item::new(name.clone(), path, ItemType::Module))
             } else {
                 None
             }
@@ -240,7 +292,7 @@ impl Crate {
             // TODO: error
             self.find_item(&parent)
                 .unwrap()
-                .and_then(|i| i.find_member(name.last()))
+                .and_then(|i| i.find_member(name))
         } else {
             None
         }
@@ -254,23 +306,20 @@ impl Item {
 
     pub fn load_doc(&self) -> anyhow::Result<Doc> {
         match self.ty {
-            ItemType::Member => parser::parse_member_doc(&self.path, &self.name),
-            ItemType::Module | ItemType::Crate => parser::parse_module_doc(&self.path, &self.name),
-            ItemType::Item => parser::parse_item_doc(&self.path, &self.name),
+            ItemType::TyMethod
+            | ItemType::Method
+            | ItemType::StructField
+            | ItemType::Variant
+            | ItemType::AssocType
+            | ItemType::AssocConst => parser::parse_member_doc(&self.path, &self.name),
+            ItemType::Module => parser::parse_module_doc(&self.path, &self.name),
+            _ => parser::parse_item_doc(&self.path, &self.name),
         }
     }
 
-    pub fn find_member(&self, name: &str) -> Option<Item> {
+    pub fn find_member(&self, name: &Fqn) -> Option<Item> {
         // TODO: error handling
-        if parser::find_member(&self.path, name).unwrap() {
-            Some(Item::new(
-                self.name.child(name),
-                self.path.clone(),
-                ItemType::Member,
-            ))
-        } else {
-            None
-        }
+        parser::find_member(&self.path, name).unwrap()
     }
 }
 
