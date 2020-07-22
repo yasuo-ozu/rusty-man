@@ -89,6 +89,10 @@ pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
+    let (ty, groups) = get_fields(&document, item)?;
+    if !groups.is_empty() {
+        doc.groups.push((ty, groups));
+    }
     let (ty, groups) = get_assoc_types(&document, item)?;
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
@@ -147,6 +151,63 @@ pub fn parse_member_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     doc.definition = Some(get_html(member.as_node())?);
     doc.description = docblock.map(|n| get_html(&n)).transpose()?;
     Ok(doc)
+}
+
+fn get_fields(
+    document: &kuchiki::NodeRef,
+    parent: &doc::Item,
+) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
+    let ty = doc::ItemType::StructField;
+    let mut fields: Vec<doc::Doc> = Vec::new();
+    let heading = select_first(document, &format!("#{}", ty.group_id()))?;
+
+    let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
+    let mut name: Option<String> = None;
+    let mut definition: Option<String> = None;
+    while let Some(element) = &next {
+        if is_element(element, &markup5ever::local_name!("span")) && has_class(element, ty.class())
+        {
+            if let Some(name) = &name {
+                let mut doc = doc::Doc::new(parent.name.child(name), ty);
+                doc.definition = definition.take();
+                fields.push(doc);
+            }
+            name = get_node_attribute(element, "id")
+                .and_then(|s| s.splitn(2, '.').nth(1).map(ToOwned::to_owned));
+            definition = Some(get_html(element)?);
+            next = element.next_sibling();
+        } else if is_element(element, &markup5ever::local_name!("div")) {
+            if has_class(element, "docblock") {
+                if let Some(name) = &name {
+                    let mut doc = doc::Doc::new(parent.name.child(name), ty);
+                    doc.definition = definition.take();
+                    // TODO: use inner_html() instead
+                    doc.description = element.first_child().map(|n| n.text_contents());
+                    fields.push(doc);
+                }
+                name = None;
+                definition = None;
+            }
+
+            next = element.next_sibling();
+        } else {
+            if let Some(name) = &name {
+                let mut doc = doc::Doc::new(parent.name.child(name), ty);
+                doc.definition = definition.take();
+                fields.push(doc);
+            }
+            next = None;
+        }
+    }
+
+    let mut groups: Vec<doc::MemberGroup> = Vec::new();
+    if !fields.is_empty() {
+        let mut group = doc::MemberGroup::new(None);
+        group.members = fields;
+        groups.push(group);
+    }
+
+    Ok((ty, groups))
 }
 
 fn get_methods(

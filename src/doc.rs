@@ -259,7 +259,7 @@ impl ItemType {
             ItemType::Impl => "impl",
             ItemType::TyMethod => "required-method",
             ItemType::Method => "method",
-            ItemType::StructField => "field",
+            ItemType::StructField => "structfield",
             ItemType::Variant => "variant",
             ItemType::Macro => "macro",
             ItemType::Primitive => "primitive",
