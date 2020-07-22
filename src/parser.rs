@@ -47,7 +47,7 @@ pub fn find_member<P: AsRef<path::Path>>(
             .as_node()
             .parent()
             .context("Member element does not have a parent")?;
-        if let Some(parent_id) = get_attribute(parent.as_element().unwrap(), "id") {
+        if let Some(parent_id) = get_node_attribute(&parent, "id") {
             let item_type: doc::ItemType = parent_id.splitn(2, '.').next().unwrap().parse()?;
             return Ok(Some(doc::Item::new(
                 name.clone(),
@@ -84,6 +84,12 @@ pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
     doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
     doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
+
+    let (ty, groups) = get_variants(&document, item)?;
+    if !groups.is_empty() {
+        doc.groups.push((ty, groups));
+    }
+
     Ok(doc)
 }
 
@@ -135,6 +141,52 @@ pub fn parse_member_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     Ok(doc)
 }
 
+fn get_variants(
+    document: &kuchiki::NodeRef,
+    parent: &doc::Item,
+) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
+    let ty = doc::ItemType::Variant;
+    let mut variants: Vec<doc::Doc> = Vec::new();
+    let heading = select_first(document, &format!("#{}", ty.group_id()))?;
+
+    let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
+    let mut name: Option<String> = None;
+    while let Some(element) = &next {
+        if is_element(element, markup5ever::local_name!("div")) {
+            if has_class(element, ty.class()) {
+                if let Some(name) = &name {
+                    variants.push(doc::Doc::new(parent.name.child(name), ty));
+                }
+                name = get_node_attribute(element, "id")
+                    .and_then(|s| s.splitn(2, '.').nth(1).map(ToOwned::to_owned));
+            } else if has_class(element, "docblock") {
+                if let Some(name) = &name {
+                    let mut doc = doc::Doc::new(parent.name.child(name), ty);
+                    // TODO: use inner_html() instead
+                    doc.description = Some(element.text_contents());
+                    variants.push(doc);
+                }
+                name = None;
+            }
+
+            next = element.next_sibling();
+        } else {
+            if let Some(name) = &name {
+                variants.push(doc::Doc::new(parent.name.child(name), ty));
+            }
+            next = None;
+        }
+    }
+
+    let mut groups: Vec<doc::MemberGroup> = Vec::new();
+    if !variants.is_empty() {
+        let mut group = doc::MemberGroup::new();
+        group.members = variants;
+        groups.push(group);
+    }
+    Ok((ty, groups))
+}
+
 fn get_members(
     document: &kuchiki::NodeRef,
     parent: &doc::Item,
@@ -166,6 +218,34 @@ fn get_member(
 
 fn get_attribute(element: &kuchiki::ElementData, name: &str) -> Option<String> {
     element.attributes.borrow().get(name).map(ToOwned::to_owned)
+}
+
+fn get_node_attribute(node: &kuchiki::NodeRef, name: &str) -> Option<String> {
+    node.as_element().and_then(|e| get_attribute(e, name))
+}
+
+fn next_sibling_element(node: &kuchiki::NodeRef) -> Option<kuchiki::NodeRef> {
+    let mut next = node.next_sibling();
+    while let Some(node) = &next {
+        if node.as_element().is_some() {
+            break;
+        }
+        next = node.next_sibling();
+    }
+    next
+}
+
+fn is_element(node: &kuchiki::NodeRef, name: markup5ever::LocalName) -> bool {
+    node.as_element()
+        .map(|e| e.name.local == name)
+        .unwrap_or(false)
+}
+
+fn has_class(node: &kuchiki::NodeRef, class: &str) -> bool {
+    node.as_element()
+        .and_then(|e| get_attribute(&e, "class"))
+        .map(|a| a.split(' ').any(|s| s == class))
+        .unwrap_or(false)
 }
 
 fn get_html(node: &kuchiki::NodeRef) -> anyhow::Result<String> {

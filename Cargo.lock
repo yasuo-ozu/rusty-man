@@ -477,6 +477,7 @@ dependencies = [
  "anyhow 1.0.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "html2text 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "kuchiki 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "markup5ever 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pager 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.56 (registry+https://github.com/rust-lang/crates.io-index)",
