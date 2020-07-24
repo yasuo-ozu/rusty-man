@@ -54,8 +54,9 @@ For more usage information, run `rusty-man --help`.
 
 ## Installation
 
-To install rusty-man, clone this repository and use cargo to build the project.
-See the [`INSTALL.md`](./INSTALL.md) file for more information.
+To install rusty-man, clone this repository and use cargo to build the project,
+or use `cargo install`.  See the [`INSTALL.md`](./INSTALL.md) file for more
+information.
 
 rusty-man should run on all platforms supported by [`crossterm`][].  If you
 have trouble running rusty-man on your platform or if you want to help porting
