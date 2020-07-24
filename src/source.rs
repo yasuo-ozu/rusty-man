@@ -29,6 +29,7 @@ pub struct DirSource {
 
 impl DirSource {
     fn new(path: path::PathBuf) -> Self {
+        log::info!("Created directory source at '{}'", path.display());
         Self { path }
     }
 }
@@ -50,11 +51,13 @@ impl Source for DirSource {
             if entry.file_type()?.is_file() {
                 if let Some(s) = entry.file_name().to_str() {
                     if s.starts_with("search-index") && s.ends_with(".js") {
+                        log::info!("Found search index '{}'", &entry.path().display());
                         return index::Index::load(&entry.path());
                     }
                 }
             }
         }
+        log::info!("Could not find search index for '{}'", self.path.display());
         Ok(None)
     }
 }

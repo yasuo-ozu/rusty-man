@@ -24,6 +24,7 @@ use crate::doc;
 
 #[derive(Debug)]
 pub struct Index {
+    path: path::PathBuf,
     data: Data,
 }
 
@@ -80,7 +81,7 @@ impl Index {
         let mut json: Option<String> = None;
         let mut finished = false;
 
-        for line in io::BufReader::new(fs::File::open(path)?).lines() {
+        for line in io::BufReader::new(fs::File::open(path.as_ref())?).lines() {
             let line = line?;
             if let Some(json) = &mut json {
                 if line == "}');" {
@@ -102,16 +103,32 @@ impl Index {
                 let data: Data =
                     serde_json::from_str(&json).context("Could not parse search index")?;
 
-                Ok(Some(Index { data }))
+                Ok(Some(Index {
+                    data,
+                    path: path.as_ref().to_owned(),
+                }))
             } else {
+                log::info!(
+                    "Did not find JSON end line in search index '{}'",
+                    path.as_ref().display()
+                );
                 Ok(None)
             }
         } else {
+            log::info!(
+                "Did not find JSON start line in search index '{}'",
+                path.as_ref().display()
+            );
             Ok(None)
         }
     }
 
     pub fn find(&self, name: &doc::Name) -> Vec<IndexItem> {
+        log::info!(
+            "Looking up '{}' in search index '{}'",
+            name,
+            self.path.display()
+        );
         let mut matches: Vec<IndexItem> = Vec::new();
         for (krate, data) in &self.data.crates {
             let mut path = krate;
@@ -135,6 +152,7 @@ impl Index {
                 };
                 let full_name: doc::Fqn = format!("{}::{}", &full_path, &item.name).into();
                 if full_name.ends_with(&name) {
+                    log::info!("Found index match '{}'", full_name);
                     matches.push(IndexItem {
                         name: full_name,
                         description: item.desc.clone(),

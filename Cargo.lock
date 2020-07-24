@@ -143,6 +143,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_logger"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "log 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "errno"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -559,8 +567,10 @@ version = "0.1.1"
 dependencies = [
  "anyhow 1.0.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossterm 0.17.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "html2text 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "kuchiki 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "markup5ever 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pager 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -885,6 +895,7 @@ dependencies = [
 "checksum derive_more 0.99.9 (registry+https://github.com/rust-lang/crates.io-index)" = "298998b1cf6b5b2c8a7b023dfd45821825ce3ba8a8af55c921a0e734e4653f76"
 "checksum dtoa 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "134951f4028bdadb9b84baf4232681efbf277da25144b9b0ad65df75946c422b"
 "checksum dtoa-short 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "59020b8513b76630c49d918c33db9f4c91638e7d3404a28084083b87e33f76f2"
+"checksum env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "44533bbbb3bb3c1fa17d9f2e4e38bbbaf8396ba82193c4cb1b6445d711445d36"
 "checksum errno 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "6eab5ee3df98a279d9b316b1af6ac95422127b1290317e6d18c1743c99418b01"
 "checksum errno-dragonfly 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "14ca354e36190500e1e1fb267c647932382b54053c50b14970856c0b00a35067"
 "checksum futf 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "7c9c1ce3fa9336301af935ab852c437817d14cd33690446569392e65170aac3b"

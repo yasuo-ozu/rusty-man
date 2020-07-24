@@ -89,6 +89,8 @@ struct Opt {
 }
 
 fn main() -> anyhow::Result<()> {
+    env_logger::init();
+
     let opt = Opt::from_args();
     let sources = load_sources(&opt.source_paths, !opt.no_default_sources)?;
     let doc = if let Some(doc) = find_doc(&sources, &opt.keyword)? {
@@ -126,6 +128,11 @@ fn load_sources(
             let path: &path::Path = s.as_ref();
             if path.is_dir() {
                 vec.push(source::get_source(path)?);
+            } else {
+                log::info!(
+                    "Ignoring default source '{}' because it does not exist",
+                    path.display()
+                );
             }
         }
     }
@@ -154,6 +161,7 @@ fn find_doc(
             .map(|i| i.load_doc())
             .transpose()
     } else {
+        log::info!("Could not find crate '{}'", fqn.krate());
         Ok(None)
     }
 }
@@ -176,6 +184,10 @@ fn search_doc(
             .with_context(|| format!("Could not find documentation for {}", &item.name))?;
         Ok(Some(doc))
     } else {
+        log::info!(
+            "Could not find documentation for '{}' in the search index",
+            name
+        );
         Ok(None)
     }
 }
@@ -203,6 +215,7 @@ fn search_item(
             &name
         ))
     } else if items.len() == 1 {
+        log::info!("Search returned a single item: '{}'", &items[0].name);
         Ok(Some(items[0].clone()))
     } else {
         select_item(&items, name)
