@@ -22,17 +22,16 @@ impl RichTextRenderer {
     }
 
     fn render_string(&self, ts: &RichString) -> io::Result<()> {
-        let start_style = get_style(ts, get_start_style);
-        let end_style = get_style(ts, get_end_style);
-        write!(io::stdout(), "{}{}{}", start_style, ts.s, end_style)
+        let content = get_styled_content(ts);
+        write!(io::stdout(), "{}", content)
     }
 }
 
 impl super::Printer for RichTextRenderer {
     fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()> {
-        write!(io::stdout(), "{}", termion::style::Bold)?;
+        write!(io::stdout(), "{}", crossterm::style::Attribute::Bold)?;
         super::print_title(self.line_length, left, middle, right)?;
-        writeln!(io::stdout(), "{}", termion::style::Reset)
+        writeln!(io::stdout(), "{}", crossterm::style::Attribute::Reset)
     }
 
     fn print_html(&self, indent: usize, s: &str, _show_links: bool) -> io::Result<()> {
@@ -55,10 +54,11 @@ impl super::Printer for RichTextRenderer {
     }
 
     fn print_heading(&self, indent: usize, level: usize, s: &str) -> io::Result<()> {
-        let text = match level {
-            1..=3 => format!("{}{}{}", termion::style::Bold, s, termion::style::Reset),
-            _ => s.to_owned(),
-        };
+        let mut text = crossterm::style::style(s);
+        if level < 4 {
+            use crossterm::style::Attribute;
+            text = text.attribute(Attribute::Bold).attribute(Attribute::Reset);
+        }
         writeln!(io::stdout(), "{}{}", " ".repeat(indent), &text)
     }
 
@@ -67,40 +67,26 @@ impl super::Printer for RichTextRenderer {
     }
 }
 
-fn get_style<F>(ts: &RichString, f: F) -> String
-where
-    F: Fn(&text_renderer::RichAnnotation) -> String,
-{
-    ts.tag.iter().map(f).collect::<Vec<_>>().join("")
-}
-
-fn get_start_style(annotation: &text_renderer::RichAnnotation) -> String {
-    use termion::{color, style};
+fn get_styled_content(ts: &RichString) -> crossterm::style::StyledContent<&str> {
+    use crossterm::style::{Attribute, Color};
     use text_renderer::RichAnnotation;
 
-    match annotation {
-        RichAnnotation::Default => String::new(),
-        RichAnnotation::Link(_) => style::Underline.to_string(),
-        RichAnnotation::Image => String::new(),
-        RichAnnotation::Emphasis => style::Italic.to_string(),
-        RichAnnotation::Strong => style::Bold.to_string(),
-        RichAnnotation::Code => color::Fg(color::LightYellow).to_string(),
-        RichAnnotation::Preformat(_) => String::new(),
-    }
-}
+    let mut content = crossterm::style::style(ts.s.as_ref());
 
-fn get_end_style(annotation: &text_renderer::RichAnnotation) -> String {
-    use termion::{color, style};
-    use text_renderer::RichAnnotation;
-
-    match annotation {
-        RichAnnotation::Default => String::new(),
-        RichAnnotation::Link(_) => style::NoUnderline.to_string(),
-        RichAnnotation::Image => String::new(),
-        RichAnnotation::Emphasis => style::NoItalic.to_string(),
-        // TODO: investigate why NoBold does not work
-        RichAnnotation::Strong => style::Reset.to_string(),
-        RichAnnotation::Code => color::Fg(color::Reset).to_string(),
-        RichAnnotation::Preformat(_) => String::new(),
+    for annotation in &ts.tag {
+        content = match annotation {
+            RichAnnotation::Default => content,
+            RichAnnotation::Link(_) => content.attribute(Attribute::Underlined),
+            RichAnnotation::Image => content,
+            RichAnnotation::Emphasis => content.attribute(Attribute::Italic),
+            // TODO: investigeate why NoBold does not work
+            RichAnnotation::Strong => content
+                .attribute(Attribute::Bold)
+                .attribute(Attribute::Reset),
+            RichAnnotation::Code => content.with(Color::Yellow),
+            RichAnnotation::Preformat(_) => content,
+        };
     }
+
+    content
 }

@@ -14,6 +14,7 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1.0.31"
+crossterm = "0.17.7"
 html2text = "0.1.12"
 kuchiki = "0.8.0"
 markup5ever = "0.10.0"
@@ -21,7 +22,6 @@ pager = "0.15.0"
 serde_json = "1.0.56"
 serde_repr = "0.1.6"
 serde_tuple = "0.5.0"
-termion = "1.5.5"
 
 [dependencies.serde]
 version = "1.0.114"

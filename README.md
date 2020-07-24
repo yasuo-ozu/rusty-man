@@ -57,8 +57,8 @@ For more usage information, run `rusty-man --help`.
 To install rusty-man, clone this repository and use cargo to build the project.
 See the [`INSTALL.md`](./INSTALL.md) file for more information.
 
-rusty-man should run on all platforms supported by [`termion`][].  If you have
-trouble running rusty-man on your platform or if you want to help porting
+rusty-man should run on all platforms supported by [`crossterm`][].  If you
+have trouble running rusty-man on your platform or if you want to help porting
 rusty-man to other platforms, please let me know.
 
 ## Contributing
@@ -87,7 +87,7 @@ This project is licensed under the [MIT License][].
 
 `rusty-man` complies with [version 3.0 of the REUSE specification][reuse].
 
-[`termion`]: https://lib.rs/termion
+[`crossterm`]: https://lib.rs/crossterm
 [`CONTRIBUTING.md`]: ./CONTRIBUTING.md
 [issues]: https://todo.sr.ht/~ireas/rusty-man?search=label:%22good%20first%20issue%22%20status%3Aopen
 [~ireas/rusty-man-dev@lists.sr.ht]: mailto:~ireas/rusty-man-dev@lists.sr.ht

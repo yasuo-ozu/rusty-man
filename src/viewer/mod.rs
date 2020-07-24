@@ -23,7 +23,9 @@ pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
 }
 
 pub fn get_default() -> Box<dyn Viewer> {
-    if termion::is_tty(&io::stdout()) {
+    use crossterm::tty::IsTty;
+
+    if io::stdout().is_tty() {
         Box::new(text::TextViewer::with_rich_text())
     } else {
         Box::new(text::TextViewer::with_plain_text())
@@ -31,7 +33,7 @@ pub fn get_default() -> Box<dyn Viewer> {
 }
 
 pub fn get_line_length() -> usize {
-    if let Ok((cols, _)) = termion::terminal_size() {
+    if let Ok((cols, _)) = crossterm::terminal::size() {
         cmp::min(cols.into(), 100)
     } else {
         100
