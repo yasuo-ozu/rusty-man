@@ -8,9 +8,10 @@ authors = ["Robin Krahl <robin.krahl@ireas.org>"]
 edition = "2018"
 description = "Command-line viewer for rustdoc documentation"
 keywords = ["doc", "cli", "rustdoc"]
-categories = ["command-line-utilities"]
+categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 license = "MIT"
+exclude = [".builds/*"]
 
 [dependencies]
 anyhow = "1.0.31"
