@@ -35,7 +35,7 @@ impl DirSource {
 
 impl Source for DirSource {
     fn find_crate(&self, name: &str) -> Option<doc::Crate> {
-        let crate_path = self.path.join(name);
+        let crate_path = self.path.join(name.replace('-', "_"));
         if crate_path.join("all.html").is_file() {
             Some(doc::Crate::new(name.to_owned(), crate_path))
         } else {
