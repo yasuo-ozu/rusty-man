@@ -6,7 +6,8 @@
 //! rusty-man opens the documentation for a given keyword.  It performs these steps to find the
 //! documentation for an item:
 //! 1. The sources, currently only local directories, are loaded, see the `load_sources` funnction
-//!    and the `source` module.
+//!    and the `source` module.  Per default, we look for documentation in `/usr/share/doc` and in
+//!    `./target/doc`.
 //! 2. We split the keyword `{crate}::{item}` into the crate and the item and try to find the crate
 //!    in one of the sources – see the `find_crate` function.
 //! 3. If we found a crate, we look up the item in the `all.html` file of the crate and load the
