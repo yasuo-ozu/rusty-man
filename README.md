@@ -61,6 +61,15 @@ rusty-man should run on all platforms supported by [`crossterm`][].  If you
 have trouble running rusty-man on your platform or if you want to help porting
 rusty-man to other platforms, please let me know.
 
+## Integrations
+
+### vim
+
+You can set rusty-man as the keyword program with `set keywordprg=rusty-man`
+and then use `K` to open the documentation for the item under the cursor.  If
+you want to apply this setting for all Rust files, add it to the
+`ftplugin/rust.vim` file in your vim runtime directory (e. g. `~/.vim`).
+
 ## Contributing
 
 Contributions to this project are very welcome!  You can contribute by writing
