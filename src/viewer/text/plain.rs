@@ -15,6 +15,7 @@ pub struct PlainTextRenderer {
 struct Decorator {
     links: Vec<String>,
     ignore_next_link: bool,
+    show_links: bool,
 }
 
 impl PlainTextRenderer {
@@ -26,20 +27,25 @@ impl PlainTextRenderer {
 }
 
 impl super::Printer for PlainTextRenderer {
-    fn print_html(&self, s: &str) -> io::Result<()> {
-        writeln!(
-            io::stdout(),
-            "{}",
-            html2text::from_read_with_decorator(s.as_bytes(), self.line_length, Decorator::new())
-        )
+    fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()> {
+        super::print_title(self.line_length, left, middle, right)?;
+        writeln!(io::stdout())
     }
 
-    fn print_heading(&self, level: usize, s: &str) -> io::Result<()> {
-        self.print_html(&format!(
-            "<h{level}>{text}</h{level}>",
-            level = level,
-            text = s
-        ))
+    fn print_html(&self, indent: usize, s: &str, show_links: bool) -> io::Result<()> {
+        let lines = html2text::from_read_with_decorator(
+            s.as_bytes(),
+            self.line_length - indent,
+            Decorator::new(show_links),
+        );
+        for line in lines.trim().split('\n') {
+            writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
+        }
+        Ok(())
+    }
+
+    fn print_heading(&self, indent: usize, _level: usize, s: &str) -> io::Result<()> {
+        writeln!(io::stdout(), "{}{}", " ".repeat(indent), s)
     }
 
     fn println(&self) -> io::Result<()> {
@@ -48,16 +54,18 @@ impl super::Printer for PlainTextRenderer {
 }
 
 impl Decorator {
-    pub fn new() -> Self {
+    pub fn new(show_links: bool) -> Self {
         Self {
             links: Vec::new(),
             ignore_next_link: false,
+            show_links,
         }
     }
 
     fn show_link(&self, url: &str) -> bool {
-        // only show absolute links -- local links are most likely not helpful
-        (url.starts_with("http") || url.starts_with("https")) &&
+        self.show_links &&
+            // only show absolute links -- local links are most likely not helpful
+            (url.starts_with("http") || url.starts_with("https")) &&
             // ignore playground links -- typically, these links are too long to display in a
             // sensible fasshion
             !url.starts_with("http://play.rust-lang.org") &&
@@ -129,6 +137,6 @@ impl text_renderer::TextDecorator for Decorator {
     }
 
     fn make_subblock_decorator(&self) -> Self {
-        Decorator::new()
+        Decorator::new(self.show_links)
     }
 }

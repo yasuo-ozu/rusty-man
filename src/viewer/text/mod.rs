@@ -11,9 +11,11 @@ use crate::doc;
 use crate::viewer;
 
 pub trait Printer: fmt::Debug {
-    fn print_heading(&self, level: usize, s: &str) -> io::Result<()>;
+    fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()>;
 
-    fn print_html(&self, s: &str) -> io::Result<()>;
+    fn print_heading(&self, indent: usize, level: usize, s: &str) -> io::Result<()>;
+
+    fn print_html(&self, indent: usize, s: &str, show_links: bool) -> io::Result<()>;
 
     fn println(&self) -> io::Result<()>;
 }
@@ -29,41 +31,33 @@ impl<P: Printer> TextViewer<P> {
     }
 
     fn print_doc(&self, doc: &doc::Doc) -> io::Result<()> {
+        let title = format!("{} {}", doc.ty.name(), doc.name.as_ref());
         self.printer
-            .print_heading(1, &format!("{} {}", doc.ty.name(), doc.name.as_ref()))?;
-        self.print_opt(doc.definition.as_deref())?;
-        self.print_opt(doc.description.as_deref())?;
+            .print_title(doc.name.krate(), &title, "rusty-man")?;
+        self.print_opt("SYNOPSIS", doc.definition.as_deref(), false)?;
+        self.print_opt("DESCRIPTION", doc.description.as_deref(), true)?;
         for (ty, groups) in &doc.groups {
-            self.printer.println()?;
-            self.printer.print_heading(2, ty.group_name())?;
+            self.print_heading(1, ty.group_name())?;
 
             for group in groups {
                 if let Some(title) = &group.title {
-                    self.printer.println()?;
-                    self.printer.print_heading(3, title)?;
+                    self.print_heading(2, title)?;
                 }
 
-                if doc.ty == doc::ItemType::Module {
-                    self.print_list(group.members.iter().map(|i| {
-                        if let Some(description) = &i.description {
-                            format!("{}<br/>{}", i.name.last(), description)
-                        } else {
-                            i.name.last().to_owned()
-                        }
-                    }))?;
-                } else {
-                    for member in &group.members {
+                for member in &group.members {
+                    // TODO: use something link strip_prefix instead of last()
+                    self.print_heading(3, member.name.last())?;
+                    if let Some(definition) = &member.definition {
+                        self.printer.print_html(12, definition, false)?;
+                    }
+                    if member.definition.is_some() && member.description.is_some() {
                         self.printer.println()?;
-                        self.printer.print_heading(4, member.name.last())?;
-                        if let Some(definition) = &member.definition {
-                            self.printer.print_html(definition)?;
-                        }
-                        if member.definition.is_some() && member.description.is_some() {
-                            self.printer.println()?;
-                        }
-                        if let Some(description) = &member.description {
-                            self.printer.print_html(description)?;
-                        }
+                    }
+                    if let Some(description) = &member.description {
+                        self.printer.print_html(12, description, true)?;
+                    }
+                    if member.definition.is_some() || member.description.is_some() {
+                        self.printer.println()?;
                     }
                 }
             }
@@ -71,25 +65,27 @@ impl<P: Printer> TextViewer<P> {
         Ok(())
     }
 
-    fn print_opt(&self, s: Option<&str>) -> io::Result<()> {
+    fn print_opt(&self, title: &str, s: Option<&str>, show_links: bool) -> io::Result<()> {
         if let Some(s) = s {
-            self.printer.println()?;
-            self.printer.print_html(s)
+            self.print_heading(1, title)?;
+            self.printer.print_html(6, s, show_links)?;
+            self.printer.println()
         } else {
             Ok(())
         }
     }
 
-    fn print_list<I, D>(&self, items: I) -> io::Result<()>
-    where
-        I: Iterator<Item = D>,
-        D: fmt::Display,
-    {
-        let html = items
-            .map(|i| format!("<li>{}</li>", i))
-            .collect::<Vec<_>>()
-            .join("");
-        self.printer.print_html(&format!("<ul>{}</ul>", html))
+    fn print_heading(&self, level: usize, s: &str) -> io::Result<()> {
+        let text = match level {
+            1 => std::borrow::Cow::from(s.to_uppercase()),
+            _ => std::borrow::Cow::from(s),
+        };
+        let indent = match level {
+            1 => 0,
+            2 => 3,
+            _ => 6,
+        };
+        self.printer.print_heading(indent, level, text.as_ref())
     }
 }
 
@@ -128,4 +124,31 @@ fn ignore_pipe_error(error: io::Error) -> io::Result<()> {
     } else {
         Err(error)
     }
+}
+
+pub fn print_title(line_length: usize, left: &str, middle: &str, right: &str) -> io::Result<()> {
+    use io::Write;
+
+    write!(io::stdout(), "{}", left)?;
+
+    let mut idx = left.len();
+    let middle_idx = line_length / 2;
+    let offset = middle.len() / 2;
+
+    let spacing = if idx + offset >= middle_idx {
+        1
+    } else {
+        middle_idx - offset - idx
+    };
+    write!(io::stdout(), "{}{}", " ".repeat(spacing), middle)?;
+    idx += middle.len() + spacing;
+
+    let end_idx = line_length;
+    let offset = right.len();
+    let spacing = if idx + offset >= end_idx {
+        1
+    } else {
+        end_idx - offset - idx
+    };
+    writeln!(io::stdout(), "{}{}", " ".repeat(spacing), right)
 }

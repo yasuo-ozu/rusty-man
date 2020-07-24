@@ -205,7 +205,7 @@ fn get_methods(
     while let Some(subheading) = &next {
         if is_element(subheading, &local_name!("h3")) && has_class(subheading, "impl") {
             if let Some(title_element) = subheading.first_child() {
-                let title = get_html(&title_element)?;
+                let title = title_element.text_contents();
                 next = subheading.next_sibling();
                 if let Some(impl_items) = &next {
                     if is_element(impl_items, &local_name!("div"))
@@ -234,7 +234,7 @@ fn get_methods(
 
     let heading = select_first(document, "#deref-methods")?;
     if let Some(heading) = heading {
-        let title = get_html(heading.as_node())?;
+        let title = heading.as_node().text_contents();
         if let Some(impl_items) = heading.as_node().next_sibling() {
             let group = get_method_group(
                 parent,
