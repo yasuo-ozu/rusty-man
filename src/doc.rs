@@ -387,6 +387,7 @@ impl Crate {
     }
 
     pub fn find_item(&self, name: &Fqn) -> anyhow::Result<Option<Item>> {
+        log::info!("Searching item '{}' in crate '{}'", name, self.name);
         if self.name == name.krate() {
             if let Some(local_name) = name.rest() {
                 if let Some(path) = parser::find_item(self.path.join("all.html"), local_name)? {
@@ -405,6 +406,7 @@ impl Crate {
     }
 
     pub fn find_module(&self, name: &Fqn) -> Option<Item> {
+        log::info!("Searching module '{}' in crate '{}'", name, self.name);
         if self.name == name.krate() {
             let module_path = if let Some(rest) = name.rest() {
                 rest.split("::").fold(path::PathBuf::new(), |mut p, s| {
@@ -426,6 +428,7 @@ impl Crate {
     }
 
     pub fn find_member(&self, name: &Fqn) -> Option<Item> {
+        log::info!("Searching member '{}' in crate '{}'", name, self.name);
         if let Some(parent) = name.parent() {
             // TODO: error
             self.find_item(&parent)
@@ -443,6 +446,7 @@ impl Item {
     }
 
     pub fn load_doc(&self) -> anyhow::Result<Doc> {
+        log::info!("Loading documentation for '{}'", self.name);
         match self.ty {
             ItemType::TyMethod
             | ItemType::Method
@@ -456,6 +460,7 @@ impl Item {
     }
 
     pub fn find_member(&self, name: &Fqn) -> Option<Item> {
+        log::info!("Searching member '{}' in item '{}'", name, self.name);
         // TODO: error handling
         parser::find_member(&self.path, name).unwrap()
     }

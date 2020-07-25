@@ -36,15 +36,23 @@ impl DirSource {
 
 impl Source for DirSource {
     fn find_crate(&self, name: &str) -> Option<doc::Crate> {
+        log::info!(
+            "Searching crate '{}' in dir source '{}'",
+            name,
+            self.path.display()
+        );
         let crate_path = self.path.join(name.replace('-', "_"));
         if crate_path.join("all.html").is_file() {
+            log::info!("Found crate '{}': '{}'", name, crate_path.display());
             Some(doc::Crate::new(name.to_owned(), crate_path))
         } else {
+            log::info!("Did not find crate '{}' in '{}'", name, self.path.display());
             None
         }
     }
 
     fn load_index(&self) -> anyhow::Result<Option<index::Index>> {
+        log::info!("Searching search index for '{}'", self.path.display());
         // use the first file that matches the pattern search-index*.js
         for entry in fs::read_dir(&self.path)? {
             let entry = entry?;

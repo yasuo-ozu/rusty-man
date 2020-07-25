@@ -22,10 +22,13 @@ use crate::doc;
 fn parse_file<P: AsRef<path::Path>>(path: P) -> anyhow::Result<kuchiki::NodeRef> {
     use kuchiki::traits::TendrilSink;
 
-    kuchiki::parse_html()
+    log::info!("Reading HTML from file '{}'", path.as_ref().display());
+    let result = kuchiki::parse_html()
         .from_utf8()
         .from_file(path)
-        .context("Could not read HTML file")
+        .context("Could not read HTML file");
+    log::info!("HTML file parsed successfully");
+    result
 }
 
 fn parse_string(s: impl Into<String>) -> anyhow::Result<kuchiki::NodeRef> {
@@ -108,6 +111,7 @@ fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
 }
 
 pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
+    log::info!("Parsing item documentation for '{}'", item.name);
     let document = parse_file(&item.path)?;
     let definition_selector = if item.ty == doc::ItemType::Function {
         "pre.fn"
@@ -162,6 +166,7 @@ const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
 ];
 
 pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
+    log::info!("Parsing module documentation for '{}'", item.name);
     let document = parse_file(&item.path)?;
     let description = select_first(&document, ".docblock")?;
 
@@ -178,6 +183,7 @@ pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
 }
 
 pub fn parse_member_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
+    log::info!("Parsing member documentation for '{}'", item.name);
     let document = parse_file(&item.path)?;
     let member = get_member(&document, item.name.last())?
         .with_context(|| format!("Could not find member {}", &item.name))?;
