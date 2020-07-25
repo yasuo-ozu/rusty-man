@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 SPDX-License-Identifier: MIT
 -->
 
-# v0.1.1 (2020-07-14)
+# v0.1.1 (2020-07-24)
 
 This patch release fixes some minor issues with the documentation displayed on
 crates.io.
