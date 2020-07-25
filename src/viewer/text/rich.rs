@@ -53,6 +53,13 @@ impl super::Printer for RichTextRenderer {
         Ok(())
     }
 
+    fn print_code(&self, indent: usize, code: &str) -> io::Result<()> {
+        for line in code.split('\n') {
+            writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
+        }
+        Ok(())
+    }
+
     fn print_heading(&self, indent: usize, level: usize, s: &str) -> io::Result<()> {
         let mut text = crossterm::style::style(s);
         if level < 4 {

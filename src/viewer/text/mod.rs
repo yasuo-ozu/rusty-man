@@ -17,6 +17,8 @@ pub trait Printer: fmt::Debug {
 
     fn print_html(&self, indent: usize, s: &str, show_links: bool) -> io::Result<()>;
 
+    fn print_code(&self, indent: usize, code: &str) -> io::Result<()>;
+
     fn println(&self) -> io::Result<()>;
 }
 
@@ -31,9 +33,7 @@ impl<P: Printer> TextViewer<P> {
     }
 
     fn print_doc(&self, doc: &doc::Doc) -> io::Result<()> {
-        let title = format!("{} {}", doc.ty.name(), doc.name.as_ref());
-        self.printer
-            .print_title(doc.name.krate(), &title, "rusty-man")?;
+        self.print_title(doc)?;
         self.print_opt("SYNOPSIS", doc.definition.as_deref(), false)?;
         self.print_opt("DESCRIPTION", doc.description.as_deref(), true)?;
         for (ty, groups) in &doc.groups {
@@ -63,6 +63,32 @@ impl<P: Printer> TextViewer<P> {
             }
         }
         Ok(())
+    }
+
+    fn print_examples(&self, doc: &doc::Doc, examples: Vec<doc::Example>) -> io::Result<()> {
+        self.print_title(doc)?;
+        self.print_heading(1, "Examples")?;
+
+        let n = examples.len();
+        for (i, example) in examples.iter().enumerate() {
+            if n > 1 {
+                self.print_heading(2, &format!("Example {} of {}", i + 1, n))?;
+            }
+            if let Some(description) = &example.description {
+                self.printer.print_html(6, description, true)?;
+                self.printer.println()?;
+            }
+            self.printer.print_code(6, &example.code)?;
+            self.printer.println()?;
+        }
+
+        Ok(())
+    }
+
+    fn print_title(&self, doc: &doc::Doc) -> io::Result<()> {
+        let title = format!("{} {}", doc.ty.name(), doc.name.as_ref());
+        self.printer
+            .print_title(doc.name.krate(), &title, "rusty-man")
     }
 
     fn print_opt(&self, title: &str, s: Option<&str>, show_links: bool) -> io::Result<()> {
@@ -106,6 +132,14 @@ impl<P: Printer> viewer::Viewer for TextViewer<P> {
         spawn_pager();
 
         self.print_doc(doc)
+            .or_else(ignore_pipe_error)
+            .map_err(Into::into)
+    }
+
+    fn open_examples(&self, doc: &doc::Doc, examples: Vec<doc::Example>) -> anyhow::Result<()> {
+        spawn_pager();
+
+        self.print_examples(doc, examples)
             .or_else(ignore_pipe_error)
             .map_err(Into::into)
     }

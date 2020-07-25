@@ -86,6 +86,10 @@ struct Opt {
     /// indexes are not read.
     #[structopt(long)]
     no_search: bool,
+
+    /// Show all examples for the item instead of opening the full documentation.
+    #[structopt(short, long)]
+    examples: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -103,7 +107,17 @@ fn main() -> anyhow::Result<()> {
 
     if let Some(doc) = doc {
         let viewer = opt.viewer.unwrap_or_else(viewer::get_default);
-        viewer.open(&doc)
+        if opt.examples {
+            let examples = doc.find_examples()?;
+            anyhow::ensure!(
+                !examples.is_empty(),
+                "Could not find examples for {}",
+                &opt.keyword
+            );
+            viewer.open_examples(&doc, examples)
+        } else {
+            viewer.open(&doc)
+        }
     } else {
         // item selection cancelled by user
         Ok(())

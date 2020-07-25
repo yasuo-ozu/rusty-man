@@ -10,6 +10,8 @@ SPDX-License-Identifier: MIT
   - Add `env_logger` dependency in version 0.7.1.
   - Add `log` dependency in version 0.4.11.
 - Show the definition for global functions.
+- Add the `-e`/`--examples` option to only show the examples instead of opening
+  the full documentation for an item.
 
 # v0.1.1 (2020-07-24)
 

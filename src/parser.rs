@@ -28,6 +28,15 @@ fn parse_file<P: AsRef<path::Path>>(path: P) -> anyhow::Result<kuchiki::NodeRef>
         .context("Could not read HTML file")
 }
 
+fn parse_string(s: impl Into<String>) -> anyhow::Result<kuchiki::NodeRef> {
+    use kuchiki::traits::TendrilSink;
+
+    kuchiki::parse_html()
+        .from_utf8()
+        .read_from(&mut s.into().as_bytes())
+        .context("Could not read HTML string")
+}
+
 pub fn find_item<P: AsRef<path::Path>>(path: P, item: &str) -> anyhow::Result<Option<String>> {
     use std::ops::Deref;
 
@@ -75,6 +84,27 @@ fn select_first(
     selector: &str,
 ) -> anyhow::Result<Option<kuchiki::NodeDataRef<kuchiki::ElementData>>> {
     select(element, selector).map(|mut i| i.next())
+}
+
+pub fn find_examples(s: &str) -> anyhow::Result<Vec<doc::Example>> {
+    let element = parse_string(s)?;
+    let examples = select(&element, ".rust-example-rendered")?;
+    Ok(examples.map(|n| get_example(n.as_node())).collect())
+}
+
+fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
+    let code = node.text_contents();
+    let description_element = node.parent().as_ref().and_then(previous_sibling_element);
+    let description = description_element
+        .and_then(|n| {
+            if n.text_contents().ends_with(':') {
+                Some(n)
+            } else {
+                None
+            }
+        })
+        .and_then(|n| get_html(&n).ok());
+    doc::Example::new(description, code)
 }
 
 pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
@@ -478,6 +508,17 @@ fn next_sibling_element(node: &kuchiki::NodeRef) -> Option<kuchiki::NodeRef> {
         next = node.next_sibling();
     }
     next
+}
+
+fn previous_sibling_element(node: &kuchiki::NodeRef) -> Option<kuchiki::NodeRef> {
+    let mut previous = node.previous_sibling();
+    while let Some(node) = &previous {
+        if node.as_element().is_some() {
+            break;
+        }
+        previous = node.previous_sibling();
+    }
+    previous
 }
 
 fn is_element(node: &kuchiki::NodeRef, name: &markup5ever::LocalName) -> bool {

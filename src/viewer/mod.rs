@@ -11,6 +11,8 @@ use crate::doc;
 
 pub trait Viewer: fmt::Debug {
     fn open(&self, doc: &doc::Doc) -> anyhow::Result<()>;
+
+    fn open_examples(&self, doc: &doc::Doc, examples: Vec<doc::Example>) -> anyhow::Result<()>;
 }
 
 pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {

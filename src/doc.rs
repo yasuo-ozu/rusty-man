@@ -80,6 +80,12 @@ pub struct MemberGroup {
     pub members: Vec<Doc>,
 }
 
+#[derive(Clone, Debug)]
+pub struct Example {
+    pub description: Option<String>,
+    pub code: String,
+}
+
 impl Name {
     pub fn is_singleton(&self) -> bool {
         self.last_start == 0
@@ -465,13 +471,12 @@ impl Doc {
             groups: Default::default(),
         }
     }
-}
 
-impl MemberGroup {
-    pub fn new(title: Option<String>) -> Self {
-        MemberGroup {
-            title,
-            members: Vec::new(),
+    pub fn find_examples(&self) -> anyhow::Result<Vec<Example>> {
+        if let Some(description) = &self.description {
+            parser::find_examples(&description)
+        } else {
+            Ok(Vec::new())
         }
     }
 }
@@ -483,6 +488,21 @@ impl fmt::Display for Doc {
         } else {
             write!(f, "{}", &self.name)
         }
+    }
+}
+
+impl MemberGroup {
+    pub fn new(title: Option<String>) -> Self {
+        MemberGroup {
+            title,
+            members: Vec::new(),
+        }
+    }
+}
+
+impl Example {
+    pub fn new(description: Option<String>, code: String) -> Self {
+        Example { description, code }
     }
 }
 
