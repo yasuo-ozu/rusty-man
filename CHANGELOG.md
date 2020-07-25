@@ -9,6 +9,7 @@ SPDX-License-Identifier: MIT
   environment variable `RUST_LOG=info`.
   - Add `env_logger` dependency in version 0.7.1.
   - Add `log` dependency in version 0.4.11.
+- Show the definition for global functions.
 
 # v0.1.1 (2020-07-24)
 

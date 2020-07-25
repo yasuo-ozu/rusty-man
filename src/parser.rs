@@ -79,7 +79,12 @@ fn select_first(
 
 pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let document = parse_file(&item.path)?;
-    let definition = select_first(&document, ".docblock.type-decl")?;
+    let definition_selector = if item.ty == doc::ItemType::Function {
+        "pre.fn"
+    } else {
+        ".docblock.type-decl"
+    };
+    let definition = select_first(&document, definition_selector)?;
     let description = select_first(&document, "#main > .docblock:not(.type-decl)")?;
 
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
