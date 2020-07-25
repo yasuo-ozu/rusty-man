@@ -5,7 +5,11 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-## Unreleased
+## v0.1.2 (2020-07-25)
+
+This patch release adds basic logging output and a new `-e`/`--examples` option
+to extract only the examples from the documentation.  It also fixes a bug when
+displaying the documentation for a function.
 
 - Add basic logging using `env_logger` that can be enabled by setting the
   environment variable `RUST_LOG=info`.
