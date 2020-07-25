@@ -5,6 +5,11 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
+## Unreleased
+
+- Use `rustc --print sysroot` to determine the Rust installation directory
+  instead of always using `/usr`.
+
 ## v0.1.2 (2020-07-25)
 
 This patch release adds basic logging output and a new `-e`/`--examples` option

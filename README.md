@@ -31,17 +31,17 @@ You don’t have to specificy the full item name:
 $ rusty-man NodeRef
 ```
 
-If the documentation is not placed in `./target/doc` or
-`/usr/share/doc/rust{,-doc}/html`, you have to manually set the source path
-using the `-s`/`--source` option:
+If the documentation is not placed in `./target/doc` or the Rust installation
+directory, you have to manually set the source path using the `-s`/`--source`
+option:
 ```
-$ rusty-man --source ~/.rustup/toolchains/stable-*/share/doc/html io::Error
+$ rusty-man --source my/other/crate/target/doc io::Error
 ```
 
 If there are multiple matches for the keyword, rusty-man will show you a list
 of all matching items:
 ```
-$ rusty-man --source ~/.rustup/toolchains/stable-*/share/doc/rust/html u8
+$ rusty-man --source my/other/crate/target/doc u8
 Found mulitple matches for u8 – select one of:
 
 [ 0 ] core::u8: The 8-bit unsigned integer type.
