@@ -14,6 +14,7 @@ SPDX-License-Identifier: MIT
   - Remove spurious members in module documentation.
   - Show the definition for constants and typedefs.
   - Fix group and ID for typdef items.
+  - Extract the description of module items as HTML instead of plain text.
 
 ## v0.1.2 (2020-07-25)
 

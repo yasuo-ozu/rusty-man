@@ -500,9 +500,7 @@ fn get_members(
             let docblock = item.as_node().parent().and_then(|n| n.next_sibling());
 
             let mut doc = doc::Doc::new(parent.name.child(&item_name), ty);
-            // We would like to use inner_html() here, but that is currently not implemented in
-            // kuchiki
-            doc.description = docblock.map(|n| n.text_contents());
+            doc.description = docblock.map(|n| get_html(&n)).transpose()?;
             members.push(doc);
         }
     }
