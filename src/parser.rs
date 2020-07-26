@@ -132,6 +132,7 @@ pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let definition_selector = match item.ty {
         doc::ItemType::Constant => "pre.const",
         doc::ItemType::Function => "pre.fn",
+        doc::ItemType::Typedef => "pre.typedef",
         _ => ".docblock.type-decl",
     };
     let definition = select_first(&document, definition_selector)?;
