@@ -129,10 +129,10 @@ fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
 pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     log::info!("Parsing item documentation for '{}'", item.name);
     let document = parse_file(&item.path)?;
-    let definition_selector = if item.ty == doc::ItemType::Function {
-        "pre.fn"
-    } else {
-        ".docblock.type-decl"
+    let definition_selector = match item.ty {
+        doc::ItemType::Constant => "pre.const",
+        doc::ItemType::Function => "pre.fn",
+        _ => ".docblock.type-decl",
     };
     let definition = select_first(&document, definition_selector)?;
     let description = select_first(&document, "#main > .docblock:not(.type-decl)")?;
