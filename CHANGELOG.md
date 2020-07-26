@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
   - Fix the definition of methods to only contain the actual definition.
   - Remove spurious members in module documentation.
   - Show the definition for constants and typedefs.
+  - Fix group and ID for typdef items.
 
 ## v0.1.2 (2020-07-25)
 
