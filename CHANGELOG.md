@@ -9,6 +9,8 @@ SPDX-License-Identifier: MIT
 
 - Use `rustc --print sysroot` to determine the Rust installation directory
   instead of always using `/usr`.
+- Improve the documentation parser:
+  - Fix the definition of methods to only contain the actual definition.
 
 ## v0.1.2 (2020-07-25)
 

@@ -82,11 +82,27 @@ fn select(
         .with_context(|| format!("Could not apply selector {}", selector))
 }
 
+fn it_select<I: kuchiki::iter::NodeIterator>(
+    iter: I,
+    selector: &str,
+) -> anyhow::Result<kuchiki::iter::Select<kuchiki::iter::Elements<I>>> {
+    iter.select(selector)
+        .ok()
+        .with_context(|| format!("Could not apply selector {}", selector))
+}
+
 fn select_first(
     element: &kuchiki::NodeRef,
     selector: &str,
 ) -> anyhow::Result<Option<kuchiki::NodeDataRef<kuchiki::ElementData>>> {
     select(element, selector).map(|mut i| i.next())
+}
+
+fn it_select_first<I: kuchiki::iter::NodeIterator>(
+    iter: I,
+    selector: &str,
+) -> anyhow::Result<Option<kuchiki::NodeDataRef<kuchiki::ElementData>>> {
+    it_select(iter, selector).map(|mut i| i.next())
 }
 
 pub fn find_examples(s: &str) -> anyhow::Result<Vec<doc::Example>> {
@@ -368,7 +384,9 @@ fn get_method_group(
         if is_element(&element, &heading_type) && has_class(&element, "method") {
             methods.push(&mut name, &mut definition, None)?;
             name = get_id_part(&element, 1);
-            definition = element.first_child().map(|n| get_html(&n)).transpose()?;
+            definition = it_select_first(element.children(), "code")?
+                .map(|n| get_html(n.as_node()))
+                .transpose()?;
         } else if is_element(&element, &local_name!("div")) && has_class(&element, "docblock") {
             methods.push(&mut name, &mut definition, Some(&element))?;
         }
