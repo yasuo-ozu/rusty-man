@@ -493,7 +493,7 @@ fn get_members(
 ) -> anyhow::Result<Vec<doc::Doc>> {
     let mut members: Vec<doc::Doc> = Vec::new();
     if let Some(table) = select_first(document, &format!("#{} + table", ty.group_id()))? {
-        let items = select(table.as_node(), "td:first-child :first-child")?;
+        let items = select(table.as_node(), "td:first-child > :first-child")?;
         for item in items {
             let item_name = item.as_node().text_contents();
             let docblock = item.as_node().parent().and_then(|n| n.next_sibling());
