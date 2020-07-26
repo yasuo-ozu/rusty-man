@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
   - Show the definition for constants and typedefs.
   - Fix group and ID for typdef items.
   - Extract the description of module items as HTML instead of plain text.
+  - Sort implementations alphabetically.
 
 ## v0.1.2 (2020-07-25)
 

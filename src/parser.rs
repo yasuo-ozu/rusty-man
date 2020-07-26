@@ -484,6 +484,8 @@ fn get_implementation_group(
         }
     }
 
+    impls.sort();
+
     Ok(impls.into_member_group(Some(title.to_owned())))
 }
 
@@ -576,6 +578,14 @@ impl<'a> MemberDocs<'a> {
             parent,
             ty,
         }
+    }
+
+    pub fn sort(&mut self) {
+        self.docs.sort_by(|d1, d2| {
+            d1.name
+                .cmp(&d2.name)
+                .then_with(|| d1.definition.cmp(&d2.definition))
+        })
     }
 
     pub fn push(
