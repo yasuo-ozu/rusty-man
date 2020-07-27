@@ -433,26 +433,22 @@ fn get_implementations(
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let mut groups: Vec<doc::MemberGroup> = Vec::new();
 
-    if let Some(group) =
-        get_implementation_group(document, parent, "Trait Implementations", "implementations")?
-    {
-        groups.push(group);
-    }
-    if let Some(group) = get_implementation_group(
-        document,
-        parent,
-        "Auto Trait Implementations",
-        "synthetic-implementations",
-    )? {
-        groups.push(group);
-    }
-    if let Some(group) = get_implementation_group(
-        document,
-        parent,
-        "Blanket Implementations",
-        "blanket-implementations",
-    )? {
-        groups.push(group);
+    let group_data = vec![
+        // Rust < 1.45
+        ("Trait Implementations", "implementations-list"),
+        // Rust >= 1.45
+        ("Trait Implementations", "trait-implementations-list"),
+        (
+            "Auto Trait Implementations",
+            "synthetic-implementations-list",
+        ),
+        ("Blanket Implementations", "blanket-implementations-list"),
+    ];
+
+    for (title, id) in group_data {
+        if let Some(group) = get_implementation_group(document, parent, title, id)? {
+            groups.push(group);
+        }
     }
 
     Ok((doc::ItemType::Impl, groups))
@@ -462,15 +458,14 @@ fn get_implementation_group(
     document: &kuchiki::NodeRef,
     parent: &doc::Item,
     title: &str,
-    id: &str,
+    list_id: &str,
 ) -> anyhow::Result<Option<doc::MemberGroup>> {
     let ty = doc::ItemType::Impl;
     let mut impls = MemberDocs::new(parent, ty);
-    let heading = select_first(document, &format!("#{}", id))?;
+    let list_div = select_first(document, &format!("#{}", list_id))?;
 
-    let next = heading.and_then(|n| n.as_node().next_sibling());
-    if let Some(div) = next {
-        for item in div.children() {
+    if let Some(list_div) = list_div {
+        for item in list_div.as_node().children() {
             if is_element(&item, &local_name!("h3")) && has_class(&item, "impl") {
                 let code = item.first_child();
                 let a = code
