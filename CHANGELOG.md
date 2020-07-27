@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
   - Fix group and ID for typdef items.
   - Extract the description of module items as HTML instead of plain text.
   - Sort implementations alphabetically.
-  - Fix list of trait implementations for Rust 1.45.
+  - Fix list of methods and trait implementations for Rust 1.45.
 
 ## v0.1.2 (2020-07-25)
 

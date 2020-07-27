@@ -257,38 +257,23 @@ fn get_methods(
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::Method;
     let mut groups: Vec<doc::MemberGroup> = Vec::new();
-    let heading = select_first(document, &format!("#{}", ty.group_id()))?;
 
-    let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
-    while let Some(subheading) = &next {
-        if is_element(subheading, &local_name!("h3")) && has_class(subheading, "impl") {
-            if let Some(title_element) = subheading.first_child() {
-                let title = title_element.text_contents();
-                next = subheading.next_sibling();
-                if let Some(impl_items) = &next {
-                    if is_element(impl_items, &local_name!("div"))
-                        && has_class(impl_items, "impl-items")
-                    {
-                        let group = get_method_group(
-                            parent,
-                            Some(title),
-                            &impl_items,
-                            doc::ItemType::Method,
-                            local_name!("h4"),
-                        )?;
-                        if let Some(group) = group {
-                            groups.push(group);
-                        }
-                        next = impl_items.next_sibling();
-                    }
-                }
-            } else {
-                next = None;
-            }
-        } else {
-            next = None;
-        }
-    }
+    // Rust < 1.45
+    groups.append(&mut get_method_groups(
+        document,
+        parent,
+        "methods".to_owned(),
+        ty,
+        &local_name!("h4"),
+    )?);
+    // Rust >= 1.45
+    groups.append(&mut get_method_groups(
+        document,
+        parent,
+        "implementations".to_owned(),
+        ty,
+        &local_name!("h4"),
+    )?);
 
     let heading = select_first(document, "#deref-methods")?;
     if let Some(heading) = heading {
@@ -299,7 +284,7 @@ fn get_methods(
                 Some(title),
                 &impl_items,
                 doc::ItemType::Method,
-                local_name!("h4"),
+                &local_name!("h4"),
             )?;
             if let Some(group) = group {
                 groups.push(group);
@@ -316,7 +301,7 @@ fn get_methods(
                 Some(title),
                 &methods,
                 doc::ItemType::TyMethod,
-                local_name!("h3"),
+                &local_name!("h3"),
             )?;
             if let Some(group) = group {
                 groups.push(group);
@@ -333,7 +318,7 @@ fn get_methods(
                 Some(title),
                 &methods,
                 doc::ItemType::TyMethod,
-                local_name!("h3"),
+                &local_name!("h3"),
             )?;
             if let Some(group) = group {
                 groups.push(group);
@@ -359,7 +344,7 @@ fn get_assoc_types(
                 None,
                 &methods,
                 doc::ItemType::AssocType,
-                local_name!("h3"),
+                &local_name!("h3"),
             )?;
             if let Some(group) = group {
                 groups.push(group);
@@ -370,19 +355,61 @@ fn get_assoc_types(
     Ok((ty, groups))
 }
 
+fn get_method_groups(
+    document: &kuchiki::NodeRef,
+    parent: &doc::Item,
+    heading_id: String,
+    ty: doc::ItemType,
+    subheading_type: &markup5ever::LocalName,
+) -> anyhow::Result<Vec<doc::MemberGroup>> {
+    let mut groups: Vec<doc::MemberGroup> = Vec::new();
+    let heading = select_first(document, &format!("#{}", heading_id))?;
+    let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
+    while let Some(subheading) = &next {
+        if is_element(subheading, &local_name!("h3")) && has_class(subheading, "impl") {
+            if let Some(title_element) = subheading.first_child() {
+                let title = title_element.text_contents();
+                next = subheading.next_sibling();
+                if let Some(impl_items) = &next {
+                    if is_element(impl_items, &local_name!("div"))
+                        && has_class(impl_items, "impl-items")
+                    {
+                        let group = get_method_group(
+                            parent,
+                            Some(title),
+                            &impl_items,
+                            ty,
+                            &subheading_type,
+                        )?;
+                        if let Some(group) = group {
+                            groups.push(group);
+                        }
+                        next = impl_items.next_sibling();
+                    }
+                }
+            } else {
+                next = None;
+            }
+        } else {
+            next = None;
+        }
+    }
+    Ok(groups)
+}
+
 fn get_method_group(
     parent: &doc::Item,
     title: Option<String>,
     impl_items: &kuchiki::NodeRef,
     ty: doc::ItemType,
-    heading_type: markup5ever::LocalName,
+    heading_type: &markup5ever::LocalName,
 ) -> anyhow::Result<Option<doc::MemberGroup>> {
     let mut methods = MemberDocs::new(parent, ty);
 
     let mut name: Option<String> = None;
     let mut definition: Option<String> = None;
     for element in impl_items.children() {
-        if is_element(&element, &heading_type) && has_class(&element, "method") {
+        if is_element(&element, heading_type) && has_class(&element, "method") {
             methods.push(&mut name, &mut definition, None)?;
             name = get_id_part(&element, 1);
             definition = it_select_first(element.children(), "code")?
