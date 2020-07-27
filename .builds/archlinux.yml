@@ -29,6 +29,7 @@ tasks:
       cd rusty-man
       cargo doc
       cargo test
+      cargo test -- --ignored
   - clippy: |
       cd rusty-man
       cargo clippy -- -D warnings

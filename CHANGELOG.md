@@ -20,6 +20,7 @@ SPDX-License-Identifier: MIT
     options.
   - Add the `--config-file [file]` option to set a custom configuration file.
 - Improve line break rendering when displaying code.
+- Add integration test suite.
 
 ## v0.1.3 (2020-07-28)
 

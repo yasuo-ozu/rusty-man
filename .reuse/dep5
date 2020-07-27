@@ -1,0 +1,21 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: rusty-man
+Upstream-Contact: Robin Krahl <robin.krahl@ireas.org>
+Source: https://sr.ht/~ireas/rusty-man
+
+Files: tests/snapshots/*_anyhow*
+Copyright: 2020 Robin Krahl <robin.krahl@ireas.org>
+Copyright: 2019-2020 David Tolnay <dtolnay@gmail.com>
+License: MIT
+
+Files: tests/snapshots/*_log*
+Copyright: 2020 Robin Krahl <robin.krahl@ireas.org>
+Copyright: 2014 The Rust Project Developers
+License: MIT
+
+Files: tests/snapshots/*_rand_core*
+Copyright: 2020 Robin Krahl <robin.krahl@ireas.org>
+Copyright: 2014 The Rust Project Developers
+Copyright: 2018 Developers of the Rand project
+License: MIT
+

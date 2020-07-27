@@ -51,9 +51,15 @@ Please submit patches by sending a mail to the mailing list
 
 ## Testing and checking the code
 
-- rusty-man currently has a very small test suite.  You can execute it using
-  `cargo test`, but make sure to generate rusty-man’s documentation with `cargo
-  doc` before running the tests!
+- rusty-man currently has very few unit tests.  You can execute them using
+  `cargo test --bins`, but make sure to generate rusty-man’s documentation with
+  `cargo doc` before running the tests!
+- rusty-man has an integration test suite that uses [`insta`][] for snapshot
+  testing.  The test suite takes care of generating the required documentation
+  so you don’t have to run `cargo doc` manually.  Use `cargo test` to execute
+  the tests that should work on all supported Rust versions.  Use `cargo test
+  -- --ignored` to run the tests that only work with the latest stable Rust
+  version.
 - Use `cargo fmt` for code formatting.
 - Fix all warnings and errors reported by `clippy`.
 
@@ -69,3 +75,4 @@ Please submit patches by sending a mail to the mailing list
 [`git request-pull`]: https://git-scm.com/docs/git-request-pull
 [guide]: https://git-send-email.io
 [contact me]: mailto:robin.krahl@ireas.org
+[`insta`]: https://lib.rs/crates/insta
