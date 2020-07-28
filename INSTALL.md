@@ -17,7 +17,7 @@ To compile rusty-man, you need Rust 1.40 or later.
    ```
 2. Optional:  Checkout the latest release:
    ```
-   $ git checkout v0.1.2
+   $ git checkout v0.1.3
    ```
 3. Optional:  Verify the signature of the latest commit:
    ```

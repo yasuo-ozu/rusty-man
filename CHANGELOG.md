@@ -5,7 +5,11 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-## Unreleased
+## v0.1.3 (2020-07-28)
+
+This patch release adds support for documentation generated with Rust 1.45.0
+and fixes some minor bugs in the documentation parser.  It also adds the
+documentation downloaded using rustup to the default sources.
 
 - Use `rustc --print sysroot` to determine the Rust installation directory
   instead of always using `/usr`.
