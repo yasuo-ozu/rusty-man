@@ -34,8 +34,19 @@ impl<P: Printer> TextViewer<P> {
 
     fn print_doc(&self, doc: &doc::Doc) -> io::Result<()> {
         self.print_title(doc)?;
-        self.print_opt("SYNOPSIS", doc.definition.as_ref(), false)?;
-        self.print_opt("DESCRIPTION", doc.description.as_ref(), true)?;
+
+        if let Some(text) = &doc.definition {
+            self.print_heading(1, "Synopsis")?;
+            self.printer.print_code(6, text)?;
+            self.printer.println()?;
+        }
+
+        if let Some(text) = &doc.description {
+            self.print_heading(1, "Description")?;
+            self.printer.print_html(6, text, false)?;
+            self.printer.println()?;
+        }
+
         for (ty, groups) in &doc.groups {
             self.print_heading(1, ty.group_name())?;
 
@@ -48,7 +59,7 @@ impl<P: Printer> TextViewer<P> {
                     // TODO: use something link strip_prefix instead of last()
                     self.print_heading(3, member.name.last())?;
                     if let Some(definition) = &member.definition {
-                        self.printer.print_html(12, definition, false)?;
+                        self.printer.print_code(12, definition)?;
                     }
                     if member.definition.is_some() && member.description.is_some() {
                         self.printer.println()?;
@@ -89,16 +100,6 @@ impl<P: Printer> TextViewer<P> {
         let title = format!("{} {}", doc.ty.name(), doc.name.as_ref());
         self.printer
             .print_title(doc.name.krate(), &title, "rusty-man")
-    }
-
-    fn print_opt(&self, title: &str, s: Option<&doc::Text>, show_links: bool) -> io::Result<()> {
-        if let Some(s) = s {
-            self.print_heading(1, title)?;
-            self.printer.print_html(6, s, show_links)?;
-            self.printer.println()
-        } else {
-            Ok(())
-        }
     }
 
     fn print_heading(&self, level: usize, s: &str) -> io::Result<()> {
