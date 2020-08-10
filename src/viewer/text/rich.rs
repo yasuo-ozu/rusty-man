@@ -10,21 +10,53 @@ use crate::viewer;
 
 type RichString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>>;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct RichTextRenderer {
     line_length: usize,
+    syntax_set: syntect::parsing::SyntaxSet,
+    theme_set: syntect::highlighting::ThemeSet,
 }
 
 impl RichTextRenderer {
     pub fn new() -> Self {
         Self {
             line_length: viewer::get_line_length(),
+            syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
+            theme_set: syntect::highlighting::ThemeSet::load_defaults(),
         }
     }
 
     fn render_string(&self, ts: &RichString) -> io::Result<()> {
         let content = get_styled_content(ts);
         write!(io::stdout(), "{}", content)
+    }
+
+    fn render_syntax(&self, line: &[(syntect::highlighting::Style, &str)]) -> io::Result<()> {
+        use crossterm::style::{Attribute, Color};
+        use syntect::highlighting::FontStyle;
+
+        for (style, text) in line {
+            let mut content = crossterm::style::style(text).with(Color::Rgb {
+                r: style.foreground.r,
+                g: style.foreground.g,
+                b: style.foreground.b,
+            });
+            if style.font_style.contains(FontStyle::BOLD) {
+                // TODO: investigate why NoBold does not work
+                content = content
+                    .attribute(Attribute::Bold)
+                    .attribute(Attribute::Reset);
+            }
+            if style.font_style.contains(FontStyle::UNDERLINE) {
+                content = content.attribute(Attribute::Underlined);
+            }
+            if style.font_style.contains(FontStyle::ITALIC) {
+                content = content.attribute(Attribute::Italic);
+            }
+            write!(io::stdout(), "{}", content)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -55,9 +87,17 @@ impl super::Printer for RichTextRenderer {
     }
 
     fn print_code(&self, indent: usize, code: &doc::Text) -> io::Result<()> {
-        for line in code.plain.split('\n') {
-            writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
+        let syntax = self.syntax_set.find_syntax_by_extension("rs").unwrap();
+        let theme = &self.theme_set.themes["base16-eighties.dark"];
+        let mut h = syntect::easy::HighlightLines::new(syntax, theme);
+
+        for line in syntect::util::LinesWithEndings::from(&code.plain) {
+            let ranges = h.highlight(line, &self.syntax_set);
+            write!(io::stdout(), "{}", " ".repeat(indent))?;
+            self.render_syntax(&ranges)?;
         }
+        writeln!(io::stdout())?;
+
         Ok(())
     }
 
@@ -87,7 +127,7 @@ fn get_styled_content(ts: &RichString) -> crossterm::style::StyledContent<&str> 
             RichAnnotation::Link(_) => content.attribute(Attribute::Underlined),
             RichAnnotation::Image => content,
             RichAnnotation::Emphasis => content.attribute(Attribute::Italic),
-            // TODO: investigeate why NoBold does not work
+            // TODO: investigate why NoBold does not work
             RichAnnotation::Strong => content
                 .attribute(Attribute::Bold)
                 .attribute(Attribute::Reset),

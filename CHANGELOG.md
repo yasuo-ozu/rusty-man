@@ -5,6 +5,12 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
+## Unreleased
+
+- Add syntax highlighting:
+  - Add syntax highlighting using `syntect` for code snippets displayed with
+    the rich text viewer.
+
 ## v0.1.3 (2020-07-28)
 
 This patch release adds support for documentation generated with Rust 1.45.0
