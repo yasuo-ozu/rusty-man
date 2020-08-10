@@ -8,11 +8,12 @@ use std::fmt;
 use std::io;
 use std::marker;
 
+use crate::args;
 use crate::doc;
 use crate::viewer;
 
 pub trait Printer: fmt::Debug + marker::Sized {
-    fn new(args: crate::ViewerArgs) -> anyhow::Result<Self>;
+    fn new(args: args::ViewerArgs) -> anyhow::Result<Self>;
 
     fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()>;
 
@@ -42,7 +43,7 @@ impl<P: Printer> TextViewer<P> {
         }
     }
 
-    fn exec<F>(&self, args: crate::ViewerArgs, op: F) -> anyhow::Result<()>
+    fn exec<F>(&self, args: args::ViewerArgs, op: F) -> anyhow::Result<()>
     where
         F: FnOnce(&TextRenderer<P>) -> io::Result<()>,
     {
@@ -67,13 +68,13 @@ impl TextViewer<rich::RichTextRenderer> {
 }
 
 impl<P: Printer> viewer::Viewer for TextViewer<P> {
-    fn open(&self, args: crate::ViewerArgs, doc: &doc::Doc) -> anyhow::Result<()> {
+    fn open(&self, args: args::ViewerArgs, doc: &doc::Doc) -> anyhow::Result<()> {
         self.exec(args, |r| r.print_doc(doc))
     }
 
     fn open_examples(
         &self,
-        args: crate::ViewerArgs,
+        args: args::ViewerArgs,
         doc: &doc::Doc,
         examples: Vec<doc::Example>,
     ) -> anyhow::Result<()> {

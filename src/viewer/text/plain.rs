@@ -5,6 +5,7 @@ use std::io::{self, Write};
 
 use html2text::render::text_renderer;
 
+use crate::args;
 use crate::doc;
 use crate::viewer;
 
@@ -20,7 +21,7 @@ struct Decorator {
 }
 
 impl super::Printer for PlainTextRenderer {
-    fn new(_args: crate::ViewerArgs) -> anyhow::Result<Self> {
+    fn new(_args: args::ViewerArgs) -> anyhow::Result<Self> {
         Ok(Self {
             line_length: viewer::get_line_length(),
         })

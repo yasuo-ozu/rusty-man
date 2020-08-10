@@ -7,14 +7,15 @@ use std::cmp;
 use std::fmt;
 use std::io;
 
+use crate::args;
 use crate::doc;
 
 pub trait Viewer: fmt::Debug {
-    fn open(&self, args: crate::ViewerArgs, doc: &doc::Doc) -> anyhow::Result<()>;
+    fn open(&self, args: args::ViewerArgs, doc: &doc::Doc) -> anyhow::Result<()>;
 
     fn open_examples(
         &self,
-        args: crate::ViewerArgs,
+        args: args::ViewerArgs,
         doc: &doc::Doc,
         examples: Vec<doc::Example>,
     ) -> anyhow::Result<()>;

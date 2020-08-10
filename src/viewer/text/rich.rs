@@ -5,6 +5,7 @@ use std::io::{self, Write};
 
 use html2text::render::text_renderer;
 
+use crate::args;
 use crate::doc;
 use crate::viewer;
 
@@ -54,7 +55,7 @@ impl RichTextRenderer {
 }
 
 impl super::Printer for RichTextRenderer {
-    fn new(args: crate::ViewerArgs) -> anyhow::Result<Self> {
+    fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
         use anyhow::Context;
 
         let mut theme_set = syntect::highlighting::ThemeSet::load_defaults();
