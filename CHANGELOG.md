@@ -12,6 +12,12 @@ SPDX-License-Identifier: MIT
     the rich text viewer.
   - Add the `--no-syntax-highlight` option to disable syntax highlighting.
   - Add the `--theme [theme]` option to select the syntax highlighting theme.
+- Add support for configuration files:
+  - Load the `config.toml` file from the config directory according to the XDG
+    Base Directory Specification `${XDG_CONFIG_HOME}/rusty-man/config.toml`,
+    where `${XDG_CONFIG_HOME}` defaults to `${HOME}/.config`.  The
+    configuration file can be used to set defaults for the command-line
+    options.
 
 ## v0.1.3 (2020-07-28)
 

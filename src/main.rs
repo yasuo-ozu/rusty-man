@@ -48,7 +48,7 @@ use std::path;
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let args = args::Args::load();
+    let args = args::Args::load()?;
     let sources = load_sources(&args.source_paths, !args.no_default_sources)?;
     let doc = if let Some(doc) = find_doc(&sources, &args.keyword)? {
         Some(doc)

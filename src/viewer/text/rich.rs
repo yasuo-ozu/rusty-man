@@ -59,10 +59,11 @@ impl super::Printer for RichTextRenderer {
         use anyhow::Context;
 
         let mut theme_set = syntect::highlighting::ThemeSet::load_defaults();
+        let theme_name = args.theme.as_deref().unwrap_or("base16-eighties.dark");
         let theme = theme_set
             .themes
-            .remove(&args.theme)
-            .with_context(|| format!("Could not find theme {}", &args.theme))?;
+            .remove(theme_name)
+            .with_context(|| format!("Could not find theme {}", theme_name))?;
         Ok(Self {
             line_length: viewer::get_line_length(),
             highlight: !args.no_syntax_highlight,
