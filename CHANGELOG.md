@@ -19,6 +19,7 @@ SPDX-License-Identifier: MIT
     configuration file can be used to set defaults for the command-line
     options.
   - Add the `--config-file [file]` option to set a custom configuration file.
+- Improve line break rendering when displaying code.
 
 ## v0.1.3 (2020-07-28)
 

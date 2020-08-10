@@ -27,7 +27,7 @@ impl From<kuchiki::NodeRef> for doc::Text {
 impl From<&kuchiki::NodeRef> for doc::Text {
     fn from(node: &kuchiki::NodeRef) -> doc::Text {
         doc::Text {
-            plain: node.text_contents(),
+            plain: node_to_text(node),
             html: node.to_string(),
         }
     }
@@ -36,6 +36,39 @@ impl From<&kuchiki::NodeRef> for doc::Text {
 impl<T> From<kuchiki::NodeDataRef<T>> for doc::Text {
     fn from(node: kuchiki::NodeDataRef<T>) -> doc::Text {
         node.as_node().into()
+    }
+}
+
+fn node_to_text(node: &kuchiki::NodeRef) -> String {
+    let mut s = String::new();
+    push_node_to_text(&mut s, node);
+    s.trim().to_string()
+}
+
+fn push_node_to_text(s: &mut String, node: &kuchiki::NodeRef) {
+    let is_docblock = has_class(node, "docblock");
+
+    let add_newline = if is_element(node, &local_name!("br")) {
+        true
+    } else if has_class(node, "fmt-newline") || is_docblock {
+        !s.is_empty() && !s.ends_with('\n')
+    } else {
+        false
+    };
+    if add_newline {
+        s.push_str("\n");
+    }
+
+    if let Some(text) = node.as_text() {
+        s.push_str(&text.borrow())
+    }
+
+    for child in node.children() {
+        push_node_to_text(s, &child);
+    }
+
+    if is_docblock && !s.is_empty() && !s.ends_with('\n') {
+        s.push_str("\n");
     }
 }
 
