@@ -10,6 +10,8 @@ SPDX-License-Identifier: MIT
 - Add syntax highlighting:
   - Add syntax highlighting using `syntect` for code snippets displayed with
     the rich text viewer.
+  - Add the `--no-syntax-highlight` option to disable syntax highlighting.
+  - Add the `--theme [theme]` option to select the syntax highlighting theme.
 
 ## v0.1.3 (2020-07-28)
 

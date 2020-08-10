@@ -20,10 +20,10 @@ struct Decorator {
 }
 
 impl super::Printer for PlainTextRenderer {
-    fn new(_args: crate::ViewerArgs) -> Self {
-        Self {
+    fn new(_args: crate::ViewerArgs) -> anyhow::Result<Self> {
+        Ok(Self {
             line_length: viewer::get_line_length(),
-        }
+        })
     }
 
     fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()> {

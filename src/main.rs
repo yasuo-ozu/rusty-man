@@ -99,7 +99,21 @@ struct Opt {
 }
 
 #[derive(Debug, StructOpt)]
-pub struct ViewerArgs {}
+pub struct ViewerArgs {
+    /// Disable syntax highlighting.
+    ///
+    /// Per default, rusty-man tries to highlight Rust code snippets in its output if the rich text
+    /// viewer is selected.  If this option is set, it renders the HTML representation instead.
+    #[structopt(long)]
+    no_syntax_highlight: bool,
+
+    /// The color theme for syntax highlighting
+    ///
+    /// rusty-man includes these color themes: base16-ocean.dark, base16-eighties.dark,
+    /// base16-mocha.dark, base16-ocean.light, InspiredGitHub, Solarized (dark), Solarized (light).
+    #[structopt(long, default_value = "base16-eighties.dark")]
+    theme: String,
+}
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();

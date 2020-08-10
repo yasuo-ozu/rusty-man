@@ -13,8 +13,9 @@ type RichString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>
 #[derive(Debug)]
 pub struct RichTextRenderer {
     line_length: usize,
+    highlight: bool,
     syntax_set: syntect::parsing::SyntaxSet,
-    theme_set: syntect::highlighting::ThemeSet,
+    theme: syntect::highlighting::Theme,
 }
 
 impl RichTextRenderer {
@@ -53,12 +54,20 @@ impl RichTextRenderer {
 }
 
 impl super::Printer for RichTextRenderer {
-    fn new(_args: crate::ViewerArgs) -> Self {
-        Self {
+    fn new(args: crate::ViewerArgs) -> anyhow::Result<Self> {
+        use anyhow::Context;
+
+        let mut theme_set = syntect::highlighting::ThemeSet::load_defaults();
+        let theme = theme_set
+            .themes
+            .remove(&args.theme)
+            .with_context(|| format!("Could not find theme {}", &args.theme))?;
+        Ok(Self {
             line_length: viewer::get_line_length(),
+            highlight: !args.no_syntax_highlight,
             syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
-            theme_set: syntect::highlighting::ThemeSet::load_defaults(),
-        }
+            theme,
+        })
     }
 
     fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()> {
@@ -87,16 +96,19 @@ impl super::Printer for RichTextRenderer {
     }
 
     fn print_code(&self, indent: usize, code: &doc::Text) -> io::Result<()> {
-        let syntax = self.syntax_set.find_syntax_by_extension("rs").unwrap();
-        let theme = &self.theme_set.themes["base16-eighties.dark"];
-        let mut h = syntect::easy::HighlightLines::new(syntax, theme);
+        if self.highlight {
+            let syntax = self.syntax_set.find_syntax_by_extension("rs").unwrap();
+            let mut h = syntect::easy::HighlightLines::new(syntax, &self.theme);
 
-        for line in syntect::util::LinesWithEndings::from(&code.plain) {
-            let ranges = h.highlight(line, &self.syntax_set);
-            write!(io::stdout(), "{}", " ".repeat(indent))?;
-            self.render_syntax(&ranges)?;
+            for line in syntect::util::LinesWithEndings::from(&code.plain) {
+                let ranges = h.highlight(line, &self.syntax_set);
+                write!(io::stdout(), "{}", " ".repeat(indent))?;
+                self.render_syntax(&ranges)?;
+            }
+            writeln!(io::stdout())?;
+        } else {
+            self.print_html(indent, code, false)?;
         }
-        writeln!(io::stdout())?;
 
         Ok(())
     }

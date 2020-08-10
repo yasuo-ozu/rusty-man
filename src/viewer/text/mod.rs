@@ -11,8 +11,8 @@ use std::marker;
 use crate::doc;
 use crate::viewer;
 
-pub trait Printer: fmt::Debug {
-    fn new(args: crate::ViewerArgs) -> Self;
+pub trait Printer: fmt::Debug + marker::Sized {
+    fn new(args: crate::ViewerArgs) -> anyhow::Result<Self>;
 
     fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()>;
 
@@ -48,7 +48,7 @@ impl<P: Printer> TextViewer<P> {
     {
         spawn_pager();
 
-        let printer = P::new(args);
+        let printer = P::new(args)?;
         let renderer = TextRenderer::new(printer);
         op(&renderer).or_else(ignore_pipe_error).map_err(Into::into)
     }
