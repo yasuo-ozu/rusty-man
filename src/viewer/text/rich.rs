@@ -5,6 +5,7 @@ use std::io::{self, Write};
 
 use html2text::render::text_renderer;
 
+use crate::doc;
 use crate::viewer;
 
 type RichString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>>;
@@ -34,13 +35,13 @@ impl super::Printer for RichTextRenderer {
         writeln!(io::stdout(), "{}", crossterm::style::Attribute::Reset)
     }
 
-    fn print_html(&self, indent: usize, s: &str, _show_links: bool) -> io::Result<()> {
+    fn print_html(&self, indent: usize, s: &doc::Text, _show_links: bool) -> io::Result<()> {
         let indent = if indent >= self.line_length / 2 {
             0
         } else {
             indent
         };
-        let lines = html2text::from_read_rich(s.as_bytes(), self.line_length - indent);
+        let lines = html2text::from_read_rich(s.html.as_bytes(), self.line_length - indent);
         for line in lines {
             write!(io::stdout(), "{}", " ".repeat(indent))?;
             for element in line.iter() {
@@ -53,8 +54,8 @@ impl super::Printer for RichTextRenderer {
         Ok(())
     }
 
-    fn print_code(&self, indent: usize, code: &str) -> io::Result<()> {
-        for line in code.split('\n') {
+    fn print_code(&self, indent: usize, code: &doc::Text) -> io::Result<()> {
+        for line in code.plain.split('\n') {
             writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
         }
         Ok(())

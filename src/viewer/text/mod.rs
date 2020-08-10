@@ -15,9 +15,9 @@ pub trait Printer: fmt::Debug {
 
     fn print_heading(&self, indent: usize, level: usize, s: &str) -> io::Result<()>;
 
-    fn print_html(&self, indent: usize, s: &str, show_links: bool) -> io::Result<()>;
+    fn print_html(&self, indent: usize, s: &doc::Text, show_links: bool) -> io::Result<()>;
 
-    fn print_code(&self, indent: usize, code: &str) -> io::Result<()>;
+    fn print_code(&self, indent: usize, code: &doc::Text) -> io::Result<()>;
 
     fn println(&self) -> io::Result<()>;
 }
@@ -34,8 +34,8 @@ impl<P: Printer> TextViewer<P> {
 
     fn print_doc(&self, doc: &doc::Doc) -> io::Result<()> {
         self.print_title(doc)?;
-        self.print_opt("SYNOPSIS", doc.definition.as_deref(), false)?;
-        self.print_opt("DESCRIPTION", doc.description.as_deref(), true)?;
+        self.print_opt("SYNOPSIS", doc.definition.as_ref(), false)?;
+        self.print_opt("DESCRIPTION", doc.description.as_ref(), true)?;
         for (ty, groups) in &doc.groups {
             self.print_heading(1, ty.group_name())?;
 
@@ -91,7 +91,7 @@ impl<P: Printer> TextViewer<P> {
             .print_title(doc.name.krate(), &title, "rusty-man")
     }
 
-    fn print_opt(&self, title: &str, s: Option<&str>, show_links: bool) -> io::Result<()> {
+    fn print_opt(&self, title: &str, s: Option<&doc::Text>, show_links: bool) -> io::Result<()> {
         if let Some(s) = s {
             self.print_heading(1, title)?;
             self.printer.print_html(6, s, show_links)?;

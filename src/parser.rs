@@ -18,6 +18,27 @@ use markup5ever::local_name;
 
 use crate::doc;
 
+impl From<kuchiki::NodeRef> for doc::Text {
+    fn from(node: kuchiki::NodeRef) -> doc::Text {
+        doc::Text::from(&node)
+    }
+}
+
+impl From<&kuchiki::NodeRef> for doc::Text {
+    fn from(node: &kuchiki::NodeRef) -> doc::Text {
+        doc::Text {
+            plain: node.text_contents(),
+            html: node.to_string(),
+        }
+    }
+}
+
+impl<T> From<kuchiki::NodeDataRef<T>> for doc::Text {
+    fn from(node: kuchiki::NodeDataRef<T>) -> doc::Text {
+        node.as_node().into()
+    }
+}
+
 /// Parses the HTML document at the given path and returns the DOM.
 fn parse_file<P: AsRef<path::Path>>(path: P) -> anyhow::Result<kuchiki::NodeRef> {
     use kuchiki::traits::TendrilSink;
@@ -112,7 +133,6 @@ pub fn find_examples(s: &str) -> anyhow::Result<Vec<doc::Example>> {
 }
 
 fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
-    let code = node.text_contents();
     let description_element = node.parent().as_ref().and_then(previous_sibling_element);
     let description = description_element
         .and_then(|n| {
@@ -122,8 +142,8 @@ fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
                 None
             }
         })
-        .and_then(|n| get_html(&n).ok());
-    doc::Example::new(description, code)
+        .map(From::from);
+    doc::Example::new(description, node.into())
 }
 
 pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
@@ -139,8 +159,8 @@ pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let description = select_first(&document, "#main > .docblock:not(.type-decl)")?;
 
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
-    doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
-    doc.definition = definition.map(|n| get_html(n.as_node())).transpose()?;
+    doc.description = description.map(From::from);
+    doc.definition = definition.map(From::from);
 
     let (ty, groups) = get_variants(&document, item)?;
     if !groups.is_empty() {
@@ -188,7 +208,7 @@ pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let description = select_first(&document, ".docblock")?;
 
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
-    doc.description = description.map(|n| get_html(n.as_node())).transpose()?;
+    doc.description = description.map(From::from);
     for item_type in MODULE_MEMBER_TYPES {
         let mut group = doc::MemberGroup::new(None);
         group.members = get_members(&document, item, *item_type)?;
@@ -211,8 +231,8 @@ pub fn parse_member_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let docblock = heading.next_sibling();
 
     let mut doc = doc::Doc::new(item.name.clone(), item.ty);
-    doc.definition = Some(get_html(member.as_node())?);
-    doc.description = docblock.map(|n| get_html(&n)).transpose()?;
+    doc.definition = Some(member.into());
+    doc.description = docblock.map(From::from);
     Ok(doc)
 }
 
@@ -230,16 +250,16 @@ fn get_fields(
 
     let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
     let mut name: Option<String> = None;
-    let mut definition: Option<String> = None;
+    let mut definition: Option<doc::Text> = None;
 
     while let Some(element) = &next {
         if is_element(element, &local_name!("span")) && has_class(element, ty.class()) {
             fields.push(&mut name, &mut definition, None)?;
             name = get_id_part(element, 1);
-            definition = Some(get_html(element)?);
+            definition = Some(element.into());
         } else if is_element(element, &local_name!("div")) {
             if has_class(element, "docblock") {
-                fields.push(&mut name, &mut definition, Some(element))?;
+                fields.push(&mut name, &mut definition, Some(element.into()))?;
             }
         } else {
             fields.push(&mut name, &mut definition, None)?;
@@ -407,16 +427,14 @@ fn get_method_group(
     let mut methods = MemberDocs::new(parent, ty);
 
     let mut name: Option<String> = None;
-    let mut definition: Option<String> = None;
+    let mut definition: Option<doc::Text> = None;
     for element in impl_items.children() {
         if is_element(&element, heading_type) && has_class(&element, "method") {
             methods.push(&mut name, &mut definition, None)?;
             name = get_id_part(&element, 1);
-            definition = it_select_first(element.children(), "code")?
-                .map(|n| get_html(n.as_node()))
-                .transpose()?;
+            definition = it_select_first(element.children(), "code")?.map(From::from);
         } else if is_element(&element, &local_name!("div")) && has_class(&element, "docblock") {
-            methods.push(&mut name, &mut definition, Some(&element))?;
+            methods.push(&mut name, &mut definition, Some(element.into()))?;
         }
     }
 
@@ -433,15 +451,15 @@ fn get_variants(
 
     let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
     let mut name: Option<String> = None;
-    let mut definition: Option<String> = None;
+    let mut definition: Option<doc::Text> = None;
     while let Some(element) = &next {
         if is_element(element, &local_name!("div")) {
             if has_class(element, ty.class()) {
                 variants.push(&mut name, &mut definition, None)?;
                 name = get_id_part(element, 1);
-                definition = Some(get_html(element)?);
+                definition = Some(element.into());
             } else if has_class(element, "docblock") {
-                variants.push(&mut name, &mut definition, Some(element))?;
+                variants.push(&mut name, &mut definition, Some(element.into()))?;
             }
 
             next = element.next_sibling();
@@ -500,7 +518,7 @@ fn get_implementation_group(
                     .and_then(|n| select_first(n, "a").transpose())
                     .transpose()?;
                 let mut name = a.map(|n| n.as_node().text_contents());
-                let mut definition = code.map(|n| get_html(&n)).transpose()?;
+                let mut definition = code.map(From::from);
                 impls.push(&mut name, &mut definition, None)?;
             }
         }
@@ -524,7 +542,7 @@ fn get_members(
             let docblock = item.as_node().parent().and_then(|n| n.next_sibling());
 
             let mut doc = doc::Doc::new(parent.name.child(&item_name), ty);
-            doc.description = docblock.map(|n| get_html(&n)).transpose()?;
+            doc.description = docblock.map(From::from);
             members.push(doc);
         }
     }
@@ -581,12 +599,6 @@ fn has_class(node: &kuchiki::NodeRef, class: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn get_html(node: &kuchiki::NodeRef) -> anyhow::Result<String> {
-    let mut vec: Vec<u8> = Vec::new();
-    node.serialize(&mut vec)?;
-    String::from_utf8(vec).context("Could not convert node to HTML")
-}
-
 struct MemberDocs<'a> {
     docs: Vec<doc::Doc>,
     parent: &'a doc::Item,
@@ -613,8 +625,8 @@ impl<'a> MemberDocs<'a> {
     pub fn push(
         &mut self,
         name: &mut Option<String>,
-        definition: &mut Option<String>,
-        description: Option<&kuchiki::NodeRef>,
+        definition: &mut Option<doc::Text>,
+        description: Option<doc::Text>,
     ) -> anyhow::Result<()> {
         let name = name.take();
         let definition = definition.take();
@@ -622,7 +634,7 @@ impl<'a> MemberDocs<'a> {
         if let Some(name) = name {
             let mut doc = doc::Doc::new(self.parent.name.child(&name), self.ty);
             doc.definition = definition;
-            doc.description = description.map(|n| get_html(n)).transpose()?;
+            doc.description = description;
             self.docs.push(doc);
         }
         Ok(())
@@ -688,12 +700,14 @@ mod tests {
 
         assert_eq!(name, doc.name);
         assert_eq!(doc::ItemType::Method, doc.ty);
+        let definition = doc.definition.unwrap();
+        assert_eq!("pub fn as_node(&self) -> &NodeRef", &definition.plain);
         assert_eq!(
             "<code id=\"as_node.v\">\
              pub fn <a class=\"fnname\" href=\"#method.as_node\">as_node</a>(&amp;self) \
              -&gt; &amp;<a class=\"struct\" href=\"../kuchiki/struct.NodeRef.html\" \
              title=\"struct kuchiki::NodeRef\">NodeRef</a></code>",
-            &doc.definition.unwrap()
+            &definition.html
         );
         assert!(doc.description.is_some());
     }

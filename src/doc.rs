@@ -21,6 +21,12 @@ pub struct Name {
 #[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Fqn(Name);
 
+#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Text {
+    pub plain: String,
+    pub html: String,
+}
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, serde_repr::Deserialize_repr)]
 #[repr(u8)]
 pub enum ItemType {
@@ -69,8 +75,8 @@ pub struct Item {
 pub struct Doc {
     pub name: Fqn,
     pub ty: ItemType,
-    pub description: Option<String>,
-    pub definition: Option<String>,
+    pub description: Option<Text>,
+    pub definition: Option<Text>,
     pub groups: Vec<(ItemType, Vec<MemberGroup>)>,
 }
 
@@ -82,8 +88,8 @@ pub struct MemberGroup {
 
 #[derive(Clone, Debug)]
 pub struct Example {
-    pub description: Option<String>,
-    pub code: String,
+    pub description: Option<Text>,
+    pub code: Text,
 }
 
 impl Name {
@@ -479,7 +485,7 @@ impl Doc {
 
     pub fn find_examples(&self) -> anyhow::Result<Vec<Example>> {
         if let Some(description) = &self.description {
-            parser::find_examples(&description)
+            parser::find_examples(&description.html)
         } else {
             Ok(Vec::new())
         }
@@ -489,7 +495,7 @@ impl Doc {
 impl fmt::Display for Doc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(description) = &self.description {
-            write!(f, "{}: {}", &self.name, description)
+            write!(f, "{}: {}", &self.name, description.plain)
         } else {
             write!(f, "{}", &self.name)
         }
@@ -506,7 +512,7 @@ impl MemberGroup {
 }
 
 impl Example {
-    pub fn new(description: Option<String>, code: String) -> Self {
+    pub fn new(description: Option<Text>, code: Text) -> Self {
         Example { description, code }
     }
 }

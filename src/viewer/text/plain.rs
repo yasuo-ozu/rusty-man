@@ -5,6 +5,7 @@ use std::io::{self, Write};
 
 use html2text::render::text_renderer;
 
+use crate::doc;
 use crate::viewer;
 
 #[derive(Clone, Debug)]
@@ -32,9 +33,9 @@ impl super::Printer for PlainTextRenderer {
         writeln!(io::stdout())
     }
 
-    fn print_html(&self, indent: usize, s: &str, show_links: bool) -> io::Result<()> {
+    fn print_html(&self, indent: usize, s: &doc::Text, show_links: bool) -> io::Result<()> {
         let lines = html2text::from_read_with_decorator(
-            s.as_bytes(),
+            s.html.as_bytes(),
             self.line_length - indent,
             Decorator::new(show_links),
         );
@@ -44,8 +45,8 @@ impl super::Printer for PlainTextRenderer {
         Ok(())
     }
 
-    fn print_code(&self, indent: usize, code: &str) -> io::Result<()> {
-        for line in code.split('\n') {
+    fn print_code(&self, indent: usize, code: &doc::Text) -> io::Result<()> {
+        for line in code.plain.split('\n') {
             writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
         }
         Ok(())
