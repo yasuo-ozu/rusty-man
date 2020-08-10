@@ -98,7 +98,7 @@ impl<P: Printer> TextRenderer<P> {
 
         if let Some(text) = &doc.description {
             self.print_heading(1, "Description")?;
-            self.printer.print_html(6, text, false)?;
+            self.printer.print_html(6, text, true)?;
             self.printer.println()?;
         }
 
