@@ -6,11 +6,14 @@ mod rich;
 
 use std::fmt;
 use std::io;
+use std::marker;
 
 use crate::doc;
 use crate::viewer;
 
 pub trait Printer: fmt::Debug {
+    fn new(args: crate::ViewerArgs) -> Self;
+
     fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()>;
 
     fn print_heading(&self, indent: usize, level: usize, s: &str) -> io::Result<()>;
@@ -24,10 +27,61 @@ pub trait Printer: fmt::Debug {
 
 #[derive(Clone, Debug)]
 pub struct TextViewer<P: Printer> {
+    _printer: marker::PhantomData<P>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TextRenderer<P: Printer> {
     printer: P,
 }
 
 impl<P: Printer> TextViewer<P> {
+    fn new() -> Self {
+        TextViewer {
+            _printer: Default::default(),
+        }
+    }
+
+    fn exec<F>(&self, args: crate::ViewerArgs, op: F) -> anyhow::Result<()>
+    where
+        F: FnOnce(&TextRenderer<P>) -> io::Result<()>,
+    {
+        spawn_pager();
+
+        let printer = P::new(args);
+        let renderer = TextRenderer::new(printer);
+        op(&renderer).or_else(ignore_pipe_error).map_err(Into::into)
+    }
+}
+
+impl TextViewer<plain::PlainTextRenderer> {
+    pub fn with_plain_text() -> Self {
+        TextViewer::new()
+    }
+}
+
+impl TextViewer<rich::RichTextRenderer> {
+    pub fn with_rich_text() -> Self {
+        TextViewer::new()
+    }
+}
+
+impl<P: Printer> viewer::Viewer for TextViewer<P> {
+    fn open(&self, args: crate::ViewerArgs, doc: &doc::Doc) -> anyhow::Result<()> {
+        self.exec(args, |r| r.print_doc(doc))
+    }
+
+    fn open_examples(
+        &self,
+        args: crate::ViewerArgs,
+        doc: &doc::Doc,
+        examples: Vec<doc::Example>,
+    ) -> anyhow::Result<()> {
+        self.exec(args, |r| r.print_examples(doc, examples))
+    }
+}
+
+impl<P: Printer> TextRenderer<P> {
     pub fn new(printer: P) -> Self {
         Self { printer }
     }
@@ -113,36 +167,6 @@ impl<P: Printer> TextViewer<P> {
             _ => 6,
         };
         self.printer.print_heading(indent, level, text.as_ref())
-    }
-}
-
-impl TextViewer<plain::PlainTextRenderer> {
-    pub fn with_plain_text() -> Self {
-        Self::new(plain::PlainTextRenderer::new())
-    }
-}
-
-impl TextViewer<rich::RichTextRenderer> {
-    pub fn with_rich_text() -> Self {
-        Self::new(rich::RichTextRenderer::new())
-    }
-}
-
-impl<P: Printer> viewer::Viewer for TextViewer<P> {
-    fn open(&self, doc: &doc::Doc) -> anyhow::Result<()> {
-        spawn_pager();
-
-        self.print_doc(doc)
-            .or_else(ignore_pipe_error)
-            .map_err(Into::into)
-    }
-
-    fn open_examples(&self, doc: &doc::Doc, examples: Vec<doc::Example>) -> anyhow::Result<()> {
-        spawn_pager();
-
-        self.print_examples(doc, examples)
-            .or_else(ignore_pipe_error)
-            .map_err(Into::into)
     }
 }
 

@@ -19,15 +19,13 @@ struct Decorator {
     show_links: bool,
 }
 
-impl PlainTextRenderer {
-    pub fn new() -> Self {
+impl super::Printer for PlainTextRenderer {
+    fn new(_args: crate::ViewerArgs) -> Self {
         Self {
             line_length: viewer::get_line_length(),
         }
     }
-}
 
-impl super::Printer for PlainTextRenderer {
     fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()> {
         super::print_title(self.line_length, left, middle, right)?;
         writeln!(io::stdout())

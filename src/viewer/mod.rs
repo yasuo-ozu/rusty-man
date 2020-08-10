@@ -10,9 +10,14 @@ use std::io;
 use crate::doc;
 
 pub trait Viewer: fmt::Debug {
-    fn open(&self, doc: &doc::Doc) -> anyhow::Result<()>;
+    fn open(&self, args: crate::ViewerArgs, doc: &doc::Doc) -> anyhow::Result<()>;
 
-    fn open_examples(&self, doc: &doc::Doc, examples: Vec<doc::Example>) -> anyhow::Result<()>;
+    fn open_examples(
+        &self,
+        args: crate::ViewerArgs,
+        doc: &doc::Doc,
+        examples: Vec<doc::Example>,
+    ) -> anyhow::Result<()>;
 }
 
 pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {

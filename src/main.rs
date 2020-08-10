@@ -93,7 +93,13 @@ struct Opt {
     /// Show all examples for the item instead of opening the full documentation.
     #[structopt(short, long)]
     examples: bool,
+
+    #[structopt(flatten)]
+    viewer_args: ViewerArgs,
 }
+
+#[derive(Debug, StructOpt)]
+pub struct ViewerArgs {}
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -117,9 +123,9 @@ fn main() -> anyhow::Result<()> {
                 "Could not find examples for {}",
                 &opt.keyword
             );
-            viewer.open_examples(&doc, examples)
+            viewer.open_examples(opt.viewer_args, &doc, examples)
         } else {
-            viewer.open(&doc)
+            viewer.open(opt.viewer_args, &doc)
         }
     } else {
         // item selection cancelled by user

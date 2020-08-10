@@ -18,14 +18,6 @@ pub struct RichTextRenderer {
 }
 
 impl RichTextRenderer {
-    pub fn new() -> Self {
-        Self {
-            line_length: viewer::get_line_length(),
-            syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
-            theme_set: syntect::highlighting::ThemeSet::load_defaults(),
-        }
-    }
-
     fn render_string(&self, ts: &RichString) -> io::Result<()> {
         let content = get_styled_content(ts);
         write!(io::stdout(), "{}", content)
@@ -61,6 +53,14 @@ impl RichTextRenderer {
 }
 
 impl super::Printer for RichTextRenderer {
+    fn new(_args: crate::ViewerArgs) -> Self {
+        Self {
+            line_length: viewer::get_line_length(),
+            syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
+            theme_set: syntect::highlighting::ThemeSet::load_defaults(),
+        }
+    }
+
     fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()> {
         write!(io::stdout(), "{}", crossterm::style::Attribute::Bold)?;
         super::print_title(self.line_length, left, middle, right)?;
