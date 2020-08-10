@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::fs;
+use std::path;
 
 use serde::Deserialize;
 use structopt::StructOpt;
@@ -60,6 +61,19 @@ pub struct Args {
     #[structopt(short, long)]
     pub examples: bool,
 
+    /// The path to the configuration file to read
+    ///
+    /// Per default, rusty-man tries to read defaults for the command-line arguments from the
+    /// config.toml file in the user configuration directory according to the XDG Base Directory
+    /// Specification, i. e. ${XDG_USER_CONFIG}/rusty-man/config.toml, where ${XDG_USER_CONFIG}
+    /// defaults to ${HOME}/.config.
+    ///
+    /// If this option is set, rusty-man reads the given configuration file instead.  If this
+    /// option is set to "-", rusty-man does not read any configuration files.
+    #[structopt(short, long)]
+    #[serde(skip)]
+    pub config_file: Option<String>,
+
     #[structopt(flatten)]
     #[serde(flatten)]
     pub viewer_args: ViewerArgs,
@@ -88,16 +102,25 @@ impl Args {
     pub fn load() -> anyhow::Result<Args> {
         let mut args = Args::from_args();
 
-        if let Some(config) = Args::load_config()? {
+        if let Some(config) = Args::load_config(args.config_file.as_deref())? {
             args.merge(config);
         }
 
         Ok(args)
     }
 
-    fn load_config() -> anyhow::Result<Option<Args>> {
-        let dirs = xdg::BaseDirectories::with_prefix("rusty-man")?;
-        if let Some(path) = dirs.find_config_file("config.toml") {
+    fn load_config(file: Option<&str>) -> anyhow::Result<Option<Args>> {
+        let path = if let Some(file) = file {
+            if file == "-" {
+                None
+            } else {
+                Some(path::PathBuf::from(file))
+            }
+        } else {
+            let dirs = xdg::BaseDirectories::with_prefix("rusty-man")?;
+            dirs.find_config_file("config.toml")
+        };
+        if let Some(path) = path {
             log::info!("Loading configuration file '{}'", path.display());
             let s = fs::read_to_string(path)?;
             toml::from_str(&s).map(Some).map_err(From::from)
