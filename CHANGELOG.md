@@ -5,7 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-## Unreleased
+## v0.2.0 (2020-08-11)
+
+This minor release adds support for syntax highlighting of code snippets and
+for configuration files.
 
 - Add syntax highlighting:
   - Add syntax highlighting using `syntect` for code snippets displayed with

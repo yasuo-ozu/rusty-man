@@ -26,7 +26,7 @@ To compile rusty-man, you need Rust 1.40 or later.
    ```
 2. Optional:  Checkout the latest release:
    ```
-   $ git checkout v0.1.3
+   $ git checkout v0.2.0
    ```
 3. Optional:  Verify the signature of the latest commit:
    ```
@@ -47,20 +47,20 @@ To compile rusty-man, you need Rust 1.40 or later.
 1. Download the tarball for the latest rusty-man release (see the [release
    list][]) and optionally its signature:
    ```
-   $ curl "https://git.sr.ht/~ireas/rusty-man/archive/v0.1.3.tar.gz" \
-         --output rusty-man-v0.1.3.tar.gz
+   $ curl "https://git.sr.ht/~ireas/rusty-man/archive/v0.2.0.tar.gz" \
+         --output rusty-man-v0.2.0.tar.gz
    ```
 2. Optional:  Download and verify the signature of the tarball:
    ```
-   $ curl "https://git.sr.ht/~ireas/rusty-man/refs/v0.1.3/v0.1.3.tar.gz.asc" \
-         --output rusty-man-v0.1.3.tar.gz.asc
+   $ curl "https://git.sr.ht/~ireas/rusty-man/refs/v0.2.0/v0.2.0.tar.gz.asc" \
+         --output rusty-man-v0.2.0.tar.gz.asc
    $ curl -s "https://pgp.ireas.org/0x6D533958F070C57C.txt" | gpg --import
-   $ gpg --verify rusty-man-v0.1.3.tar.gz.asc
+   $ gpg --verify rusty-man-v0.2.0.tar.gz.asc
    ```
 3. Extract the tarball:
    ```
-   $ tar -xf rusty-man-v0.1.3.tar.gz
-   $ cd rusty-man-v0.1.3
+   $ tar -xf rusty-man-v0.2.0.tar.gz
+   $ cd rusty-man-v0.2.0
    ```
 4. Compile rusty-man:
    ```
