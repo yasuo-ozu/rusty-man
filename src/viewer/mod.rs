@@ -40,10 +40,12 @@ pub fn get_default() -> Box<dyn Viewer> {
     }
 }
 
-pub fn get_line_length() -> usize {
-    if let Ok((cols, _)) = crossterm::terminal::size() {
-        cmp::min(cols.into(), 100)
+pub fn get_line_length(args: &args::ViewerArgs) -> usize {
+    if let Some(width) = args.width {
+        width
+    } else if let Ok((cols, _)) = crossterm::terminal::size() {
+        cmp::min(cols.into(), args.max_width)
     } else {
-        100
+        args.max_width
     }
 }

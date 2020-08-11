@@ -38,6 +38,7 @@ fn run(args: &[&str]) -> assert_cmd::assert::Assert {
         .args(&["--no-default-sources", "--source"])
         .arg(dir.path().join("doc"))
         .args(&["--viewer", "plain"])
+        .args(&["--width", "100"])
         .args(args)
         .assert()
 }

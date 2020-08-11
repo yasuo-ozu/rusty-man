@@ -65,7 +65,7 @@ impl super::Printer for RichTextRenderer {
             .remove(theme_name)
             .with_context(|| format!("Could not find theme {}", theme_name))?;
         Ok(Self {
-            line_length: viewer::get_line_length(),
+            line_length: viewer::get_line_length(&args),
             highlight: !args.no_syntax_highlight,
             syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
             theme,

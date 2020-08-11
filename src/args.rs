@@ -96,6 +96,21 @@ pub struct ViewerArgs {
     /// Default value: base16-eighties.dark.
     #[structopt(long)]
     pub theme: Option<String>,
+
+    /// The width of the text output
+    ///
+    /// Per default, rusty-man sets the width of the text output based on the width of the terminal
+    /// with the maximum width given by --max-width.  If this option is set, it uses the given
+    /// width instead.
+    #[structopt(long)]
+    pub width: Option<usize>,
+
+    /// The maximum width of the text output
+    ///
+    /// Unless the --width option is set, rusty-man sets the width of the text output based on the
+    /// width of the terminal with the maximum width set with this optioj.
+    #[structopt(long, default_value = "100")]
+    pub max_width: usize,
 }
 
 impl Args {

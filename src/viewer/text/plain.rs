@@ -21,9 +21,9 @@ struct Decorator {
 }
 
 impl super::Printer for PlainTextRenderer {
-    fn new(_args: args::ViewerArgs) -> anyhow::Result<Self> {
+    fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
         Ok(Self {
-            line_length: viewer::get_line_length(),
+            line_length: viewer::get_line_length(&args),
         })
     }
 

@@ -19,6 +19,8 @@ SPDX-License-Identifier: MIT
     configuration file can be used to set defaults for the command-line
     options.
   - Add the `--config-file [file]` option to set a custom configuration file.
+- Add the `--width [width]` option to set a fixed output width and the
+  `--max-width [max]` option to set the maximum output width.
 - Improve line break rendering when displaying code.
 - Add integration test suite.
 
