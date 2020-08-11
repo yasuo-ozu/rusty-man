@@ -5,11 +5,20 @@ SPDX-License-Identifier: MIT
 
 # Installing rusty-man
 
-## Requirements
+## Installing a package
+
+rusty-man packages are available for these distributions:
+- Arch Linux: [`rusty-man`][pkg-aur] in the Arch User Repository
+
+[pkg-aur]: https://aur.archlinux.org/packages/rusty-man/
+
+## Installing from source
+
+### Build Requirements
 
 To compile rusty-man, you need Rust 1.40 or later.
 
-## Installing from source
+### Installing from Git
 
 1. Clone the rusty-man Git repository:
    ```
@@ -22,18 +31,49 @@ To compile rusty-man, you need Rust 1.40 or later.
 3. Optional:  Verify the signature of the latest commit:
    ```
    $ curl -s "https://pgp.ireas.org/0x6D533958F070C57C.txt" | gpg --import
-   $ gpg verify-commit HEAD
+   $ git verify-commit HEAD
    ```
 4. Compile rusty-man:
    ```
-   $ cargo build --release
+   $ cargo build --release --locked
    ```
 5. Optional:  Install the rusty-man binary:
    ```
    $ sudo cp ./target/release/rusty-man /usr/local/bin/rusty-man
    ```
 
-## Installing from crates.io
+### Installing from a tarball
+
+1. Download the tarball for the latest rusty-man release (see the [release
+   list][]) and optionally its signature:
+   ```
+   $ curl "https://git.sr.ht/~ireas/rusty-man/archive/v0.1.3.tar.gz" \
+         --output rusty-man-v0.1.3.tar.gz
+   ```
+2. Optional:  Download and verify the signature of the tarball:
+   ```
+   $ curl "https://git.sr.ht/~ireas/rusty-man/refs/v0.1.3/v0.1.3.tar.gz.asc" \
+         --output rusty-man-v0.1.3.tar.gz.asc
+   $ curl -s "https://pgp.ireas.org/0x6D533958F070C57C.txt" | gpg --import
+   $ gpg --verify rusty-man-v0.1.3.tar.gz.asc
+   ```
+3. Extract the tarball:
+   ```
+   $ tar -xf rusty-man-v0.1.3.tar.gz
+   $ cd rusty-man-v0.1.3
+   ```
+4. Compile rusty-man:
+   ```
+   $ cargo build --release --locked
+   ```
+5. Optional:  Install the rusty-man binary:
+   ```
+   $ sudo cp ./target/release/rusty-man /usr/local/bin/rusty-man
+   ```
+
+[release list]: https://git.sr.ht/~ireas/rusty-man/refs
+
+### Installing from crates.io
 
 ```
 cargo install rusty-man

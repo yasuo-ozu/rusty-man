@@ -55,8 +55,10 @@ For more usage information, run `rusty-man --help`.
 
 ## Installation
 
-To install rusty-man, clone this repository and use cargo to build the project,
-or use `cargo install`.  See the [`INSTALL.md`][] file for more information.
+To install rusty-man from source, clone this repository and use cargo to build
+the project, or use `cargo install`.  See the [`INSTALL.md`][] file for more
+information.  rusty-man is also available as a package for these distributions:
+- Arch Linux: [`rusty-man`][pkg-aur] in the Arch User Repository
 
 rusty-man should run on all platforms supported by [`crossterm`][].  If you
 have trouble running rusty-man on your platform or if you want to help porting
@@ -107,3 +109,5 @@ This project is licensed under the [MIT License][].
 [issue tracker]: https://todo.sr.ht/~ireas/rusty-man
 [MIT license]: https://opensource.org/licenses/MIT
 [reuse]: https://reuse.software/practices/3.0/
+
+[pkg-aur]: https://aur.archlinux.org/packages/rusty-man/
