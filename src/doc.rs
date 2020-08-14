@@ -386,7 +386,7 @@ impl Doc {
 
     pub fn find_examples(&self) -> anyhow::Result<Vec<Example>> {
         if let Some(description) = &self.description {
-            parser::find_examples(&description.html)
+            parser::Parser::from_string(&description.html)?.find_examples()
         } else {
             Ok(Vec::new())
         }

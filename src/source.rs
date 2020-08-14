@@ -57,14 +57,17 @@ impl DirSource {
             root.display()
         );
         if let Some(local_name) = name.rest() {
-            if let Some(path) = parser::find_item(root.join("all.html"), local_name)? {
+            let parser = parser::Parser::from_file(root.join("all.html"))?;
+            if let Some(path) = parser.find_item(local_name)? {
                 let file_name = path::Path::new(&path)
                     .file_name()
                     .unwrap()
                     .to_str()
                     .unwrap();
                 let ty: doc::ItemType = file_name.splitn(2, '.').next().unwrap().parse()?;
-                parser::parse_item_doc(root.join(path), name, ty).map(Some)
+                parser::Parser::from_file(root.join(path))?
+                    .parse_item_doc(name, ty)
+                    .map(Some)
             } else {
                 Ok(None)
             }
@@ -91,7 +94,9 @@ impl DirSource {
         };
         let path = root.join(module_path).join("index.html");
         if path.is_file() {
-            parser::parse_module_doc(path, name).map(Some)
+            parser::Parser::from_file(path)?
+                .parse_module_doc(name)
+                .map(Some)
         } else {
             Ok(None)
         }
@@ -105,10 +110,11 @@ impl DirSource {
         );
         if let Some(parent) = name.parent() {
             if let Some(rest) = parent.rest() {
-                if let Some(path) = parser::find_item(&root.join("all.html"), rest)? {
-                    let path = root.join(path);
-                    if parser::find_member(&path, name)? {
-                        return parser::parse_member_doc(&path, name).map(Some);
+                let parser = parser::Parser::from_file(root.join("all.html"))?;
+                if let Some(path) = parser.find_item(rest)? {
+                    let parser = parser::Parser::from_file(root.join(path))?;
+                    if parser.find_member(name)? {
+                        return parser.parse_member_doc(name).map(Some);
                     }
                 }
             }

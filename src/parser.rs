@@ -18,6 +18,130 @@ use markup5ever::local_name;
 
 use crate::doc;
 
+pub struct Parser {
+    document: kuchiki::NodeRef,
+}
+
+impl Parser {
+    pub fn from_file(path: impl AsRef<path::Path>) -> anyhow::Result<Parser> {
+        use kuchiki::traits::TendrilSink;
+
+        log::info!("Reading HTML from file '{}'", path.as_ref().display());
+        let document = kuchiki::parse_html()
+            .from_utf8()
+            .from_file(path)
+            .context("Could not read HTML file")?;
+        log::info!("HTML file parsed successfully");
+
+        Ok(Parser { document })
+    }
+
+    pub fn from_string(s: impl Into<String>) -> anyhow::Result<Parser> {
+        use kuchiki::traits::TendrilSink;
+
+        log::info!("Reading HTML from string");
+        let document = kuchiki::parse_html()
+            .from_utf8()
+            .read_from(&mut s.into().as_bytes())
+            .context("Could not read HTML string")?;
+        log::info!("HTML string parsed successfully");
+
+        Ok(Parser { document })
+    }
+
+    pub fn find_item(&self, item: &str) -> anyhow::Result<Option<String>> {
+        use std::ops::Deref;
+
+        let item = select(&self.document, "ul.docblock li a")?
+            .find(|e| e.text_contents() == item)
+            .and_then(|e| get_attribute(e.deref(), "href"));
+        Ok(item)
+    }
+
+    pub fn find_member(&self, name: &doc::Fqn) -> anyhow::Result<bool> {
+        get_member(&self.document, name.last()).map(|member| member.is_some())
+    }
+
+    pub fn parse_item_doc(&self, name: &doc::Fqn, ty: doc::ItemType) -> anyhow::Result<doc::Doc> {
+        log::info!("Parsing item documentation for '{}'", name);
+        let definition_selector = match ty {
+            doc::ItemType::Constant => "pre.const",
+            doc::ItemType::Function => "pre.fn",
+            doc::ItemType::Typedef => "pre.typedef",
+            _ => ".docblock.type-decl",
+        };
+        let definition = select_first(&self.document, definition_selector)?;
+        let description = select_first(&self.document, "#main > .docblock:not(.type-decl)")?;
+
+        let mut doc = doc::Doc::new(name.clone(), ty);
+        doc.description = description.map(From::from);
+        doc.definition = definition.map(From::from);
+
+        let (ty, groups) = get_variants(&self.document, name)?;
+        if !groups.is_empty() {
+            doc.groups.push((ty, groups));
+        }
+        let (ty, groups) = get_fields(&self.document, name)?;
+        if !groups.is_empty() {
+            doc.groups.push((ty, groups));
+        }
+        let (ty, groups) = get_assoc_types(&self.document, name)?;
+        if !groups.is_empty() {
+            doc.groups.push((ty, groups));
+        }
+        let (ty, groups) = get_methods(&self.document, name)?;
+        if !groups.is_empty() {
+            doc.groups.push((ty, groups));
+        }
+        let (ty, groups) = get_implementations(&self.document, name)?;
+        if !groups.is_empty() {
+            doc.groups.push((ty, groups));
+        }
+
+        Ok(doc)
+    }
+
+    pub fn parse_member_doc(&self, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
+        log::info!("Parsing member documentation for '{}'", name);
+        let member = get_member(&self.document, name.last())?
+            .with_context(|| format!("Could not find member {}", name))?;
+        let heading = member
+            .as_node()
+            .parent()
+            .with_context(|| format!("The member {} does not have a parent", name))?;
+        let parent_id = get_node_attribute(&heading, "id")
+            .with_context(|| format!("The heading for member {} does not have an ID", name))?;
+        let ty: doc::ItemType = parent_id.splitn(2, '.').next().unwrap().parse()?;
+        let docblock = heading.next_sibling();
+
+        let mut doc = doc::Doc::new(name.clone(), ty);
+        doc.definition = Some(member.into());
+        doc.description = docblock.map(From::from);
+        Ok(doc)
+    }
+
+    pub fn parse_module_doc(&self, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
+        log::info!("Parsing module documentation for '{}'", name);
+        let description = select_first(&self.document, ".docblock")?;
+
+        let mut doc = doc::Doc::new(name.clone(), doc::ItemType::Module);
+        doc.description = description.map(From::from);
+        for item_type in MODULE_MEMBER_TYPES {
+            let mut group = doc::MemberGroup::new(None);
+            group.members = get_members(&self.document, name, *item_type)?;
+            if !group.members.is_empty() {
+                doc.groups.push((*item_type, vec![group]));
+            }
+        }
+        Ok(doc)
+    }
+
+    pub fn find_examples(&self) -> anyhow::Result<Vec<doc::Example>> {
+        let examples = select(&self.document, ".rust-example-rendered")?;
+        Ok(examples.map(|n| get_example(n.as_node())).collect())
+    }
+}
+
 impl From<kuchiki::NodeRef> for doc::Text {
     fn from(node: kuchiki::NodeRef) -> doc::Text {
         doc::Text::from(&node)
@@ -72,43 +196,6 @@ fn push_node_to_text(s: &mut String, node: &kuchiki::NodeRef) {
     }
 }
 
-/// Parses the HTML document at the given path and returns the DOM.
-fn parse_file<P: AsRef<path::Path>>(path: P) -> anyhow::Result<kuchiki::NodeRef> {
-    use kuchiki::traits::TendrilSink;
-
-    log::info!("Reading HTML from file '{}'", path.as_ref().display());
-    let result = kuchiki::parse_html()
-        .from_utf8()
-        .from_file(path)
-        .context("Could not read HTML file");
-    log::info!("HTML file parsed successfully");
-    result
-}
-
-fn parse_string(s: impl Into<String>) -> anyhow::Result<kuchiki::NodeRef> {
-    use kuchiki::traits::TendrilSink;
-
-    kuchiki::parse_html()
-        .from_utf8()
-        .read_from(&mut s.into().as_bytes())
-        .context("Could not read HTML string")
-}
-
-pub fn find_item<P: AsRef<path::Path>>(path: P, item: &str) -> anyhow::Result<Option<String>> {
-    use std::ops::Deref;
-
-    let document = parse_file(path)?;
-    let item = select(&document, "ul.docblock li a")?
-        .find(|e| e.text_contents() == item)
-        .and_then(|e| get_attribute(e.deref(), "href"));
-    Ok(item)
-}
-
-pub fn find_member<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow::Result<bool> {
-    let document = parse_file(path.as_ref())?;
-    get_member(&document, name.last()).map(|member| member.is_some())
-}
-
 fn select(
     element: &kuchiki::NodeRef,
     selector: &str,
@@ -142,12 +229,6 @@ fn it_select_first<I: kuchiki::iter::NodeIterator>(
     it_select(iter, selector).map(|mut i| i.next())
 }
 
-pub fn find_examples(s: &str) -> anyhow::Result<Vec<doc::Example>> {
-    let element = parse_string(s)?;
-    let examples = select(&element, ".rust-example-rendered")?;
-    Ok(examples.map(|n| get_example(n.as_node())).collect())
-}
-
 fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
     let description_element = node.parent().as_ref().and_then(previous_sibling_element);
     let description = description_element
@@ -160,50 +241,6 @@ fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
         })
         .map(From::from);
     doc::Example::new(description, node.into())
-}
-
-pub fn parse_item_doc(
-    path: impl AsRef<path::Path>,
-    name: &doc::Fqn,
-    ty: doc::ItemType,
-) -> anyhow::Result<doc::Doc> {
-    log::info!("Parsing item documentation for '{}'", name);
-    let document = parse_file(path)?;
-    let definition_selector = match ty {
-        doc::ItemType::Constant => "pre.const",
-        doc::ItemType::Function => "pre.fn",
-        doc::ItemType::Typedef => "pre.typedef",
-        _ => ".docblock.type-decl",
-    };
-    let definition = select_first(&document, definition_selector)?;
-    let description = select_first(&document, "#main > .docblock:not(.type-decl)")?;
-
-    let mut doc = doc::Doc::new(name.clone(), ty);
-    doc.description = description.map(From::from);
-    doc.definition = definition.map(From::from);
-
-    let (ty, groups) = get_variants(&document, name)?;
-    if !groups.is_empty() {
-        doc.groups.push((ty, groups));
-    }
-    let (ty, groups) = get_fields(&document, name)?;
-    if !groups.is_empty() {
-        doc.groups.push((ty, groups));
-    }
-    let (ty, groups) = get_assoc_types(&document, name)?;
-    if !groups.is_empty() {
-        doc.groups.push((ty, groups));
-    }
-    let (ty, groups) = get_methods(&document, name)?;
-    if !groups.is_empty() {
-        doc.groups.push((ty, groups));
-    }
-    let (ty, groups) = get_implementations(&document, name)?;
-    if !groups.is_empty() {
-        doc.groups.push((ty, groups));
-    }
-
-    Ok(doc)
 }
 
 const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
@@ -221,43 +258,6 @@ const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
     doc::ItemType::Typedef,
     doc::ItemType::Union,
 ];
-
-pub fn parse_module_doc(path: impl AsRef<path::Path>, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
-    log::info!("Parsing module documentation for '{}'", name);
-    let document = parse_file(path)?;
-    let description = select_first(&document, ".docblock")?;
-
-    let mut doc = doc::Doc::new(name.clone(), doc::ItemType::Module);
-    doc.description = description.map(From::from);
-    for item_type in MODULE_MEMBER_TYPES {
-        let mut group = doc::MemberGroup::new(None);
-        group.members = get_members(&document, name, *item_type)?;
-        if !group.members.is_empty() {
-            doc.groups.push((*item_type, vec![group]));
-        }
-    }
-    Ok(doc)
-}
-
-pub fn parse_member_doc(path: impl AsRef<path::Path>, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
-    log::info!("Parsing member documentation for '{}'", name);
-    let document = parse_file(path)?;
-    let member = get_member(&document, name.last())?
-        .with_context(|| format!("Could not find member {}", name))?;
-    let heading = member
-        .as_node()
-        .parent()
-        .with_context(|| format!("The member {} does not have a parent", name))?;
-    let parent_id = get_node_attribute(&heading, "id")
-        .with_context(|| format!("The heading for member {} does not have an ID", name))?;
-    let ty: doc::ItemType = parent_id.splitn(2, '.').next().unwrap().parse()?;
-    let docblock = heading.next_sibling();
-
-    let mut doc = doc::Doc::new(name.clone(), ty);
-    doc.definition = Some(member.into());
-    doc.description = docblock.map(From::from);
-    Ok(doc)
-}
 
 fn get_id_part(node: &kuchiki::NodeRef, i: usize) -> Option<String> {
     get_node_attribute(node, "id").and_then(|s| s.splitn(2, '.').nth(i).map(ToOwned::to_owned))
@@ -692,10 +692,12 @@ mod tests {
     fn test_find_item() {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("all.html");
-        assert_eq!(None, super::find_item(&path, "foobar").unwrap());
+        let parser = super::Parser::from_file(path).unwrap();
+
+        assert_eq!(None, parser.find_item("foobar").unwrap());
         assert_eq!(
             Some("struct.NodeRef.html".to_owned()),
-            super::find_item(&path, "NodeRef").unwrap()
+            parser.find_item("NodeRef").unwrap()
         );
     }
 
@@ -704,7 +706,10 @@ mod tests {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeRef.html");
         let name: doc::Fqn = "kuchiki::NodeRef".to_owned().into();
-        let doc = super::parse_item_doc(&path, &name, doc::ItemType::Struct).unwrap();
+        let doc = super::Parser::from_file(path)
+            .unwrap()
+            .parse_item_doc(&name, doc::ItemType::Struct)
+            .unwrap();
 
         assert_eq!(name, doc.name);
         assert_eq!(doc::ItemType::Struct, doc.ty);
@@ -717,7 +722,10 @@ mod tests {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeDataRef.html");
         let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
-        let doc = super::parse_member_doc(&path, &name, doc::ItemType::Method).unwrap();
+        let doc = super::Parser::from_file(path)
+            .unwrap()
+            .parse_member_doc(&name)
+            .unwrap();
 
         assert_eq!(name, doc.name);
         assert_eq!(doc::ItemType::Method, doc.ty);
