@@ -5,20 +5,16 @@
 //!
 //! rusty-man opens the documentation for a given keyword.  It performs these steps to find the
 //! documentation for an item:
-//! 1. The sources, currently only local directories, are loaded, see the `load_sources` funnction
+//! 1. The sources, currently only local directories, are loaded, see the `load_sources` function
 //!    and the `source` module.  Per default, we look for documentation in the directory
 //!    `share/doc/rust{,-doc}/html` relative to the Rust installation path (`rustc --print sysroot`
 //!    or `usr`) and in `./target/doc`.
-//! 2. We split the keyword `{crate}::{item}` into the crate and the item and try to find the crate
-//!    in one of the sources – see the `find_crate` function.
-//! 3. If we found a crate, we look up the item in the `all.html` file of the crate and load the
-//!    documentation linked there.  If we can’t find the item in the index, we check whether it is
-//!    a module by trying to open the `{item}/index.html` file.  If this fails too, we check
-//!    whether the item `{parent}::{member}` is a member of another type.  See the `find_doc`
-//!    function and the `doc` module.
-//! 4. If we didn’t find a match in the previous step, we load the search index from the
+//! 2. We try to look up the given keyword in all acailable sources, see the `find_doc` function
+//!    and the `source` module for the lookup logic and the `doc` module for the loaded
+//!    documentation.
+//! 3. If we didn’t find a match in the previous step, we load the search index from the
 //!    `search-index.js` file for all sources and try to find a matching item.  If we find one, we
-//!    open the documentation for that item as in step 3.  See the `search_doc` function and the
+//!    open the documentation for that item as in step 2.  See the `search_doc` function and the
 //!    `index` module.
 //!
 //! If we found a documentation item, we use a viewer to open it – see the `viewer` module.
@@ -135,23 +131,14 @@ fn find_doc(
     sources: &[Box<dyn source::Source>],
     name: &doc::Name,
 ) -> anyhow::Result<Option<doc::Doc>> {
-    let fqn: doc::Fqn = name.clone().into();
-    if let Some(krate) = find_crate(sources, fqn.krate()) {
-        krate
-            .find_item(&fqn)?
-            .or_else(|| krate.find_module(&fqn))
-            .or_else(|| krate.find_member(&fqn))
-            .map(|i| i.load_doc())
-            .transpose()
-    } else {
-        log::info!("Could not find crate '{}'", fqn.krate());
-        Ok(None)
+    let fqn = name.clone().into();
+    for source in sources {
+        if let Some(doc) = source.find_doc(&fqn)? {
+            return Ok(Some(doc));
+        }
     }
-}
-
-/// Find the crate with the given name.
-fn find_crate(sources: &[Box<dyn source::Source>], name: &str) -> Option<doc::Crate> {
-    sources.iter().filter_map(|s| s.find_crate(name)).next()
+    log::info!("Could not find item '{}'", fqn);
+    Ok(None)
 }
 
 /// Use the search index to find the documentation for an item that partially matches the given

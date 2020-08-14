@@ -4,7 +4,6 @@
 use std::convert;
 use std::fmt;
 use std::ops;
-use std::path;
 use std::str;
 
 use crate::parser;
@@ -56,19 +55,6 @@ pub enum ItemType {
     ProcAttribute = 23,
     ProcDerive = 24,
     TraitAlias = 25,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Crate {
-    pub name: String,
-    pub path: path::PathBuf,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Item {
-    pub name: Fqn,
-    pub ty: ItemType,
-    pub path: path::PathBuf,
 }
 
 #[derive(Clone, Debug)]
@@ -384,91 +370,6 @@ impl str::FromStr for ItemType {
             "traitalias" => Ok(ItemType::TraitAlias),
             _ => Err(anyhow::anyhow!("Unsupported item type: {}", s)),
         }
-    }
-}
-
-impl Crate {
-    pub fn new(name: String, path: path::PathBuf) -> Self {
-        Crate { name, path }
-    }
-
-    pub fn find_item(&self, name: &Fqn) -> anyhow::Result<Option<Item>> {
-        log::info!("Searching item '{}' in crate '{}'", name, self.name);
-        if self.name == name.krate() {
-            if let Some(local_name) = name.rest() {
-                if let Some(path) = parser::find_item(self.path.join("all.html"), local_name)? {
-                    let path = path::PathBuf::from(path);
-                    let file_name = path.file_name().unwrap().to_str().unwrap();
-                    let item_type: ItemType = file_name.splitn(2, '.').next().unwrap().parse()?;
-                    return Ok(Some(Item::new(
-                        name.clone(),
-                        self.path.join(path),
-                        item_type,
-                    )));
-                }
-            }
-        }
-        Ok(None)
-    }
-
-    pub fn find_module(&self, name: &Fqn) -> Option<Item> {
-        log::info!("Searching module '{}' in crate '{}'", name, self.name);
-        if self.name == name.krate() {
-            let module_path = if let Some(rest) = name.rest() {
-                rest.split("::").fold(path::PathBuf::new(), |mut p, s| {
-                    p.push(s);
-                    p
-                })
-            } else {
-                path::PathBuf::new()
-            };
-            let path = self.path.join(module_path).join("index.html");
-            if path.is_file() {
-                Some(Item::new(name.clone(), path, ItemType::Module))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
-    pub fn find_member(&self, name: &Fqn) -> Option<Item> {
-        log::info!("Searching member '{}' in crate '{}'", name, self.name);
-        if let Some(parent) = name.parent() {
-            // TODO: error
-            self.find_item(&parent)
-                .unwrap()
-                .and_then(|i| i.find_member(name))
-        } else {
-            None
-        }
-    }
-}
-
-impl Item {
-    pub fn new(name: Fqn, path: path::PathBuf, ty: ItemType) -> Self {
-        Item { name, ty, path }
-    }
-
-    pub fn load_doc(&self) -> anyhow::Result<Doc> {
-        log::info!("Loading documentation for '{}'", self.name);
-        match self.ty {
-            ItemType::TyMethod
-            | ItemType::Method
-            | ItemType::StructField
-            | ItemType::Variant
-            | ItemType::AssocType
-            | ItemType::AssocConst => parser::parse_member_doc(&self),
-            ItemType::Module => parser::parse_module_doc(&self),
-            _ => parser::parse_item_doc(&self),
-        }
-    }
-
-    pub fn find_member(&self, name: &Fqn) -> Option<Item> {
-        log::info!("Searching member '{}' in item '{}'", name, self.name);
-        // TODO: error handling
-        parser::find_member(&self.path, name).unwrap()
     }
 }
 

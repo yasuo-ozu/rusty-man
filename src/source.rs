@@ -10,10 +10,11 @@ use anyhow::anyhow;
 
 use crate::doc;
 use crate::index;
+use crate::parser;
 
 /// Documentation source, for example a local directory.
 pub trait Source {
-    fn find_crate(&self, name: &str) -> Option<doc::Crate>;
+    fn find_doc(&self, name: &doc::Fqn) -> anyhow::Result<Option<doc::Doc>>;
     fn load_index(&self) -> anyhow::Result<Option<index::Index>>;
 }
 
@@ -32,10 +33,8 @@ impl DirSource {
         log::info!("Created directory source at '{}'", path.display());
         Self { path }
     }
-}
 
-impl Source for DirSource {
-    fn find_crate(&self, name: &str) -> Option<doc::Crate> {
+    fn get_crate(&self, name: &str) -> Option<path::PathBuf> {
         log::info!(
             "Searching crate '{}' in dir source '{}'",
             name,
@@ -44,10 +43,115 @@ impl Source for DirSource {
         let crate_path = self.path.join(name.replace('-', "_"));
         if crate_path.join("all.html").is_file() {
             log::info!("Found crate '{}': '{}'", name, crate_path.display());
-            Some(doc::Crate::new(name.to_owned(), crate_path))
+            Some(crate_path)
         } else {
             log::info!("Did not find crate '{}' in '{}'", name, self.path.display());
             None
+        }
+    }
+
+    fn get_item(&self, root: &path::Path, name: &doc::Fqn) -> anyhow::Result<Option<doc::Doc>> {
+        log::info!(
+            "Searching item '{}' in directory '{}'",
+            name,
+            root.display()
+        );
+        if let Some(local_name) = name.rest() {
+            if let Some(path) = parser::find_item(root.join("all.html"), local_name)? {
+                let file_name = path::Path::new(&path)
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap();
+                let ty: doc::ItemType = file_name.splitn(2, '.').next().unwrap().parse()?;
+                parser::parse_item_doc(root.join(path), name, ty).map(Some)
+            } else {
+                Ok(None)
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn get_module(&self, root: &path::Path, name: &doc::Fqn) -> anyhow::Result<Option<doc::Doc>> {
+        log::info!(
+            "Searching module '{}' in directory '{}'",
+            name,
+            root.display()
+        );
+        let module_path = if let Some(local_name) = name.rest() {
+            local_name
+                .split("::")
+                .fold(path::PathBuf::new(), |mut p, s| {
+                    p.push(s);
+                    p
+                })
+        } else {
+            path::PathBuf::new()
+        };
+        let path = root.join(module_path).join("index.html");
+        if path.is_file() {
+            parser::parse_module_doc(path, name).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn get_member(&self, root: &path::Path, name: &doc::Fqn) -> anyhow::Result<Option<doc::Doc>> {
+        log::info!(
+            "Searching member '{}' in directory '{}'",
+            name,
+            root.display()
+        );
+        if let Some(parent) = name.parent() {
+            if let Some(rest) = parent.rest() {
+                if let Some(path) = parser::find_item(&root.join("all.html"), rest)? {
+                    let path = root.join(path);
+                    if parser::find_member(&path, name)? {
+                        return parser::parse_member_doc(&path, name).map(Some);
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+}
+
+impl Source for DirSource {
+    fn find_doc(&self, name: &doc::Fqn) -> anyhow::Result<Option<doc::Doc>> {
+        log::info!(
+            "Searching documentation for '{}' in dir source '{}'",
+            name,
+            self.path.display()
+        );
+        if let Some(crate_path) = self.get_crate(name.krate()) {
+            let doc = self
+                .get_item(&crate_path, name)
+                .transpose()
+                .or_else(|| self.get_module(&crate_path, name).transpose())
+                .or_else(|| self.get_member(&crate_path, name).transpose())
+                .transpose()?;
+            if doc.is_some() {
+                log::info!(
+                    "Found documentation for '{}' in dir source '{}'",
+                    name,
+                    self.path.display()
+                )
+            } else {
+                log::info!(
+                    "Did not find documentation for '{}' in dir source '{}'",
+                    name,
+                    self.path.display()
+                )
+            }
+            Ok(doc)
+        } else {
+            log::info!(
+                "Did not find crate '{}' in dir source '{}'",
+                name.krate(),
+                self.path.display()
+            );
+            Ok(None)
         }
     }
 
@@ -78,30 +182,5 @@ pub fn get_source<P: AsRef<path::Path>>(path: P) -> anyhow::Result<Box<dyn Sourc
             "This source is not supported: {}",
             path.as_ref().display()
         ))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path;
-
-    use super::Source;
-
-    #[test]
-    fn dir_source_find_crate() {
-        fn assert_crate(source: &dyn super::Source, path: &path::PathBuf, name: &str) {
-            assert_eq!(
-                source.find_crate(name),
-                Some(super::doc::Crate::new(name.to_owned(), path.join(name)))
-            );
-        }
-
-        let doc = crate::tests::ensure_docs();
-
-        let source = super::DirSource::new(doc.clone());
-
-        assert_crate(&source, &doc, "clap");
-        assert_crate(&source, &doc, "lazy_static");
-        assert_eq!(source.find_crate("lazystatic"), None);
     }
 }

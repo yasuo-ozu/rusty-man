@@ -104,26 +104,9 @@ pub fn find_item<P: AsRef<path::Path>>(path: P, item: &str) -> anyhow::Result<Op
     Ok(item)
 }
 
-pub fn find_member<P: AsRef<path::Path>>(
-    path: P,
-    name: &doc::Fqn,
-) -> anyhow::Result<Option<doc::Item>> {
+pub fn find_member<P: AsRef<path::Path>>(path: P, name: &doc::Fqn) -> anyhow::Result<bool> {
     let document = parse_file(path.as_ref())?;
-    if let Some(member) = get_member(&document, name.last())? {
-        let parent = member
-            .as_node()
-            .parent()
-            .context("Member element does not have a parent")?;
-        if let Some(parent_id) = get_node_attribute(&parent, "id") {
-            let item_type: doc::ItemType = parent_id.splitn(2, '.').next().unwrap().parse()?;
-            return Ok(Some(doc::Item::new(
-                name.clone(),
-                path.as_ref().to_owned(),
-                item_type,
-            )));
-        }
-    }
-    Ok(None)
+    get_member(&document, name.last()).map(|member| member.is_some())
 }
 
 fn select(
@@ -179,10 +162,14 @@ fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
     doc::Example::new(description, node.into())
 }
 
-pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
-    log::info!("Parsing item documentation for '{}'", item.name);
-    let document = parse_file(&item.path)?;
-    let definition_selector = match item.ty {
+pub fn parse_item_doc(
+    path: impl AsRef<path::Path>,
+    name: &doc::Fqn,
+    ty: doc::ItemType,
+) -> anyhow::Result<doc::Doc> {
+    log::info!("Parsing item documentation for '{}'", name);
+    let document = parse_file(path)?;
+    let definition_selector = match ty {
         doc::ItemType::Constant => "pre.const",
         doc::ItemType::Function => "pre.fn",
         doc::ItemType::Typedef => "pre.typedef",
@@ -191,27 +178,27 @@ pub fn parse_item_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     let definition = select_first(&document, definition_selector)?;
     let description = select_first(&document, "#main > .docblock:not(.type-decl)")?;
 
-    let mut doc = doc::Doc::new(item.name.clone(), item.ty);
+    let mut doc = doc::Doc::new(name.clone(), ty);
     doc.description = description.map(From::from);
     doc.definition = definition.map(From::from);
 
-    let (ty, groups) = get_variants(&document, item)?;
+    let (ty, groups) = get_variants(&document, name)?;
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
-    let (ty, groups) = get_fields(&document, item)?;
+    let (ty, groups) = get_fields(&document, name)?;
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
-    let (ty, groups) = get_assoc_types(&document, item)?;
+    let (ty, groups) = get_assoc_types(&document, name)?;
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
-    let (ty, groups) = get_methods(&document, item)?;
+    let (ty, groups) = get_methods(&document, name)?;
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
-    let (ty, groups) = get_implementations(&document, item)?;
+    let (ty, groups) = get_implementations(&document, name)?;
     if !groups.is_empty() {
         doc.groups.push((ty, groups));
     }
@@ -235,16 +222,16 @@ const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
     doc::ItemType::Union,
 ];
 
-pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
-    log::info!("Parsing module documentation for '{}'", item.name);
-    let document = parse_file(&item.path)?;
+pub fn parse_module_doc(path: impl AsRef<path::Path>, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
+    log::info!("Parsing module documentation for '{}'", name);
+    let document = parse_file(path)?;
     let description = select_first(&document, ".docblock")?;
 
-    let mut doc = doc::Doc::new(item.name.clone(), item.ty);
+    let mut doc = doc::Doc::new(name.clone(), doc::ItemType::Module);
     doc.description = description.map(From::from);
     for item_type in MODULE_MEMBER_TYPES {
         let mut group = doc::MemberGroup::new(None);
-        group.members = get_members(&document, item, *item_type)?;
+        group.members = get_members(&document, name, *item_type)?;
         if !group.members.is_empty() {
             doc.groups.push((*item_type, vec![group]));
         }
@@ -252,18 +239,21 @@ pub fn parse_module_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
     Ok(doc)
 }
 
-pub fn parse_member_doc(item: &doc::Item) -> anyhow::Result<doc::Doc> {
-    log::info!("Parsing member documentation for '{}'", item.name);
-    let document = parse_file(&item.path)?;
-    let member = get_member(&document, item.name.last())?
-        .with_context(|| format!("Could not find member {}", &item.name))?;
+pub fn parse_member_doc(path: impl AsRef<path::Path>, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
+    log::info!("Parsing member documentation for '{}'", name);
+    let document = parse_file(path)?;
+    let member = get_member(&document, name.last())?
+        .with_context(|| format!("Could not find member {}", name))?;
     let heading = member
         .as_node()
         .parent()
-        .with_context(|| format!("The member {} does not have a parent", &item.name))?;
+        .with_context(|| format!("The member {} does not have a parent", name))?;
+    let parent_id = get_node_attribute(&heading, "id")
+        .with_context(|| format!("The heading for member {} does not have an ID", name))?;
+    let ty: doc::ItemType = parent_id.splitn(2, '.').next().unwrap().parse()?;
     let docblock = heading.next_sibling();
 
-    let mut doc = doc::Doc::new(item.name.clone(), item.ty);
+    let mut doc = doc::Doc::new(name.clone(), ty);
     doc.definition = Some(member.into());
     doc.description = docblock.map(From::from);
     Ok(doc)
@@ -275,7 +265,7 @@ fn get_id_part(node: &kuchiki::NodeRef, i: usize) -> Option<String> {
 
 fn get_fields(
     document: &kuchiki::NodeRef,
-    parent: &doc::Item,
+    parent: &doc::Fqn,
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::StructField;
     let mut fields = MemberDocs::new(parent, ty);
@@ -306,7 +296,7 @@ fn get_fields(
 
 fn get_methods(
     document: &kuchiki::NodeRef,
-    parent: &doc::Item,
+    parent: &doc::Fqn,
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::Method;
     let mut groups: Vec<doc::MemberGroup> = Vec::new();
@@ -384,7 +374,7 @@ fn get_methods(
 
 fn get_assoc_types(
     document: &kuchiki::NodeRef,
-    parent: &doc::Item,
+    parent: &doc::Fqn,
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::AssocType;
     let mut groups: Vec<doc::MemberGroup> = Vec::new();
@@ -410,7 +400,7 @@ fn get_assoc_types(
 
 fn get_method_groups(
     document: &kuchiki::NodeRef,
-    parent: &doc::Item,
+    parent: &doc::Fqn,
     heading_id: String,
     ty: doc::ItemType,
     subheading_type: &markup5ever::LocalName,
@@ -451,7 +441,7 @@ fn get_method_groups(
 }
 
 fn get_method_group(
-    parent: &doc::Item,
+    parent: &doc::Fqn,
     title: Option<String>,
     impl_items: &kuchiki::NodeRef,
     ty: doc::ItemType,
@@ -476,7 +466,7 @@ fn get_method_group(
 
 fn get_variants(
     document: &kuchiki::NodeRef,
-    parent: &doc::Item,
+    parent: &doc::Fqn,
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::Variant;
     let mut variants = MemberDocs::new(parent, ty);
@@ -507,7 +497,7 @@ fn get_variants(
 
 fn get_implementations(
     document: &kuchiki::NodeRef,
-    parent: &doc::Item,
+    parent: &doc::Fqn,
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let mut groups: Vec<doc::MemberGroup> = Vec::new();
 
@@ -534,7 +524,7 @@ fn get_implementations(
 
 fn get_implementation_group(
     document: &kuchiki::NodeRef,
-    parent: &doc::Item,
+    parent: &doc::Fqn,
     title: &str,
     list_id: &str,
 ) -> anyhow::Result<Option<doc::MemberGroup>> {
@@ -564,7 +554,7 @@ fn get_implementation_group(
 
 fn get_members(
     document: &kuchiki::NodeRef,
-    parent: &doc::Item,
+    parent: &doc::Fqn,
     ty: doc::ItemType,
 ) -> anyhow::Result<Vec<doc::Doc>> {
     let mut members: Vec<doc::Doc> = Vec::new();
@@ -574,7 +564,7 @@ fn get_members(
             let item_name = item.as_node().text_contents();
             let docblock = item.as_node().parent().and_then(|n| n.next_sibling());
 
-            let mut doc = doc::Doc::new(parent.name.child(&item_name), ty);
+            let mut doc = doc::Doc::new(parent.child(&item_name), ty);
             doc.description = docblock.map(From::from);
             members.push(doc);
         }
@@ -634,12 +624,12 @@ fn has_class(node: &kuchiki::NodeRef, class: &str) -> bool {
 
 struct MemberDocs<'a> {
     docs: Vec<doc::Doc>,
-    parent: &'a doc::Item,
+    parent: &'a doc::Fqn,
     ty: doc::ItemType,
 }
 
 impl<'a> MemberDocs<'a> {
-    pub fn new(parent: &'a doc::Item, ty: doc::ItemType) -> Self {
+    pub fn new(parent: &'a doc::Fqn, ty: doc::ItemType) -> Self {
         Self {
             docs: Vec::new(),
             parent,
@@ -665,7 +655,7 @@ impl<'a> MemberDocs<'a> {
         let definition = definition.take();
 
         if let Some(name) = name {
-            let mut doc = doc::Doc::new(self.parent.name.child(&name), self.ty);
+            let mut doc = doc::Doc::new(self.parent.child(&name), self.ty);
             doc.definition = definition;
             doc.description = description;
             self.docs.push(doc);
@@ -714,8 +704,7 @@ mod tests {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeRef.html");
         let name: doc::Fqn = "kuchiki::NodeRef".to_owned().into();
-        let item = doc::Item::new(name.clone(), path, doc::ItemType::Struct);
-        let doc = super::parse_item_doc(&item).unwrap();
+        let doc = super::parse_item_doc(&path, &name, doc::ItemType::Struct).unwrap();
 
         assert_eq!(name, doc.name);
         assert_eq!(doc::ItemType::Struct, doc.ty);
@@ -728,8 +717,7 @@ mod tests {
         let path = crate::tests::ensure_docs();
         let path = path.join("kuchiki").join("struct.NodeDataRef.html");
         let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
-        let item = doc::Item::new(name.clone(), path, doc::ItemType::Method);
-        let doc = super::parse_member_doc(&item).unwrap();
+        let doc = super::parse_member_doc(&path, &name, doc::ItemType::Method).unwrap();
 
         assert_eq!(name, doc.name);
         assert_eq!(doc::ItemType::Method, doc.ty);
