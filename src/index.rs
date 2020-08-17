@@ -60,12 +60,51 @@ struct CrateData {
 
 #[derive(Debug, PartialEq, serde_tuple::Deserialize_tuple)]
 struct ItemData {
+    #[serde(deserialize_with = "deserialize_item_type")]
     ty: doc::ItemType,
     name: String,
     path: String,
     desc: String,
     parent: Option<usize>,
     _ignored: serde_json::Value,
+}
+
+fn deserialize_item_type<'de, D>(d: D) -> Result<doc::ItemType, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    use doc::ItemType;
+    use serde::de::{Deserialize, Error};
+
+    match u8::deserialize(d)? {
+        0 => Ok(ItemType::Module),
+        1 => Ok(ItemType::ExternCrate),
+        2 => Ok(ItemType::Import),
+        3 => Ok(ItemType::Struct),
+        4 => Ok(ItemType::Enum),
+        5 => Ok(ItemType::Function),
+        6 => Ok(ItemType::Typedef),
+        7 => Ok(ItemType::Static),
+        8 => Ok(ItemType::Trait),
+        9 => Ok(ItemType::Impl),
+        10 => Ok(ItemType::TyMethod),
+        11 => Ok(ItemType::Method),
+        12 => Ok(ItemType::StructField),
+        13 => Ok(ItemType::Variant),
+        14 => Ok(ItemType::Macro),
+        15 => Ok(ItemType::Primitive),
+        16 => Ok(ItemType::AssocType),
+        17 => Ok(ItemType::Constant),
+        18 => Ok(ItemType::AssocConst),
+        19 => Ok(ItemType::Union),
+        20 => Ok(ItemType::ForeignType),
+        21 => Ok(ItemType::Keyword),
+        22 => Ok(ItemType::OpaqueTy),
+        23 => Ok(ItemType::ProcAttribute),
+        24 => Ok(ItemType::ProcDerive),
+        25 => Ok(ItemType::TraitAlias),
+        _ => Err(D::Error::custom("Unexpected item type")),
+    }
 }
 
 impl Index {
