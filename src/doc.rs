@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
+use std::collections;
 use std::convert;
 use std::fmt;
 use std::ops;
@@ -31,26 +32,35 @@ pub struct Code(String);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ItemType {
-    Module,
+    // module members
     ExternCrate,
     Import,
+    Primitive,
+    Module,
+    Macro,
     Struct,
     Enum,
-    Function,
-    Typedef,
+    Constant,
     Static,
     Trait,
-    Impl,
-    TyMethod,
-    Method,
-    StructField,
-    Variant,
-    Macro,
-    Primitive,
-    AssocType,
-    Constant,
-    AssocConst,
+    Function,
+    Typedef,
     Union,
+
+    // struct and union members
+    StructField,
+
+    // enum members
+    Variant,
+
+    // associated items
+    AssocType,
+    AssocConst,
+    Method,
+    Impl,
+
+    // other items
+    TyMethod,
     ForeignType,
     Keyword,
     OpaqueTy,
@@ -65,7 +75,7 @@ pub struct Doc {
     pub ty: ItemType,
     pub description: Option<Text>,
     pub definition: Option<Code>,
-    pub groups: Vec<(ItemType, Vec<MemberGroup>)>,
+    pub groups: collections::BTreeMap<ItemType, Vec<MemberGroup>>,
 }
 
 #[derive(Clone, Debug)]

@@ -88,7 +88,7 @@ impl Parser {
         ];
         for (ty, groups) in members.into_iter() {
             if !groups.is_empty() {
-                doc.groups.push((ty, groups));
+                doc.groups.insert(ty, groups);
             }
         }
 
@@ -125,7 +125,7 @@ impl Parser {
             let mut group = doc::MemberGroup::new(None);
             group.members = get_members(&self.document, name, *item_type)?;
             if !group.members.is_empty() {
-                doc.groups.push((*item_type, vec![group]));
+                doc.groups.insert(*item_type, vec![group]);
             }
         }
         Ok(doc)
