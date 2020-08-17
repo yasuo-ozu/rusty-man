@@ -275,7 +275,7 @@ fn get_fields(
     let mut definition: Option<doc::Text> = None;
 
     while let Some(element) = &next {
-        if element.is_element(&local_name!("span")) && element.has_class(ty.class()) {
+        if element.is_element(&local_name!("span")) && element.has_class("structfield") {
             fields.push(&mut name, &mut definition, None)?;
             name = get_id_part(element, 1);
             definition = Some(element.into());
@@ -476,7 +476,7 @@ fn get_variants(
     let mut definition: Option<doc::Text> = None;
     while let Some(element) = &next {
         if element.is_element(&local_name!("div")) {
-            if element.has_class(ty.class()) {
+            if element.has_class("variant") {
                 variants.push(&mut name, &mut definition, None)?;
                 name = get_id_part(element, 1);
                 definition = Some(element.into());

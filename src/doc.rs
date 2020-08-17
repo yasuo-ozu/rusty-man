@@ -243,37 +243,6 @@ impl ItemType {
         }
     }
 
-    pub fn class(&self) -> &str {
-        match self {
-            ItemType::Module => "module",
-            ItemType::ExternCrate => "extern-crate",
-            ItemType::Import => "import",
-            ItemType::Struct => "struct",
-            ItemType::Enum => "enum",
-            ItemType::Function => "function",
-            ItemType::Typedef => "type",
-            ItemType::Static => "static",
-            ItemType::Trait => "trait",
-            ItemType::Impl => "impl",
-            ItemType::TyMethod => "required-method",
-            ItemType::Method => "method",
-            ItemType::StructField => "structfield",
-            ItemType::Variant => "variant",
-            ItemType::Macro => "macro",
-            ItemType::Primitive => "primitive",
-            ItemType::AssocType => "associated-type",
-            ItemType::Constant => "constant",
-            ItemType::AssocConst => "associated-const",
-            ItemType::Union => "union",
-            ItemType::ForeignType => "foreign-type",
-            ItemType::Keyword => "keyword",
-            ItemType::OpaqueTy => "opaque-type",
-            ItemType::ProcAttribute => "proc-attribute",
-            ItemType::ProcDerive => "proc-derive",
-            ItemType::TraitAlias => "trait-alias",
-        }
-    }
-
     pub fn group_name(&self) -> &str {
         match self {
             ItemType::Module => "Modules",
