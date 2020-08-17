@@ -26,6 +26,9 @@ pub struct Text {
     pub html: String,
 }
 
+#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Code(String);
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, serde_repr::Deserialize_repr)]
 #[repr(u8)]
 pub enum ItemType {
@@ -62,7 +65,7 @@ pub struct Doc {
     pub name: Fqn,
     pub ty: ItemType,
     pub description: Option<Text>,
-    pub definition: Option<Text>,
+    pub definition: Option<Code>,
     pub groups: Vec<(ItemType, Vec<MemberGroup>)>,
 }
 
@@ -75,7 +78,7 @@ pub struct MemberGroup {
 #[derive(Clone, Debug)]
 pub struct Example {
     pub description: Option<Text>,
-    pub code: Text,
+    pub code: Code,
 }
 
 impl Name {
@@ -211,6 +214,26 @@ impl ops::Deref for Fqn {
     }
 }
 
+impl Code {
+    pub fn new(s: String) -> Code {
+        Code(s)
+    }
+}
+
+impl fmt::Display for Code {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", &self.0)
+    }
+}
+
+impl ops::Deref for Code {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl ItemType {
     pub fn name(&self) -> &str {
         match self {
@@ -271,37 +294,6 @@ impl ItemType {
             ItemType::ProcAttribute => "Proc Attributes",
             ItemType::ProcDerive => "Proc Derives",
             ItemType::TraitAlias => "Trait Aliases",
-        }
-    }
-
-    pub fn group_id(&self) -> &str {
-        match self {
-            ItemType::Module => "modules",
-            ItemType::ExternCrate => "extern-crates",
-            ItemType::Import => "imports",
-            ItemType::Struct => "structs",
-            ItemType::Enum => "enums",
-            ItemType::Function => "functions",
-            ItemType::Typedef => "types",
-            ItemType::Static => "statics",
-            ItemType::Trait => "traits",
-            ItemType::Impl => "impls",
-            ItemType::TyMethod => "required-methods",
-            ItemType::Method => "methods",
-            ItemType::StructField => "fields",
-            ItemType::Variant => "variants",
-            ItemType::Macro => "macros",
-            ItemType::Primitive => "primitives",
-            ItemType::AssocType => "associated-types",
-            ItemType::Constant => "constants",
-            ItemType::AssocConst => "associated-consts",
-            ItemType::Union => "unions",
-            ItemType::ForeignType => "foreign-types",
-            ItemType::Keyword => "keywords",
-            ItemType::OpaqueTy => "opaque-types",
-            ItemType::ProcAttribute => "proc-attributes",
-            ItemType::ProcDerive => "proc-derives",
-            ItemType::TraitAlias => "trait-aliases",
         }
     }
 }
@@ -382,7 +374,7 @@ impl MemberGroup {
 }
 
 impl Example {
-    pub fn new(description: Option<Text>, code: Text) -> Self {
+    pub fn new(description: Option<Text>, code: Code) -> Self {
         Example { description, code }
     }
 }

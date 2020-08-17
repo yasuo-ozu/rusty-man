@@ -158,6 +158,24 @@ impl<T> From<kuchiki::NodeDataRef<T>> for doc::Text {
     }
 }
 
+impl From<kuchiki::NodeRef> for doc::Code {
+    fn from(node: kuchiki::NodeRef) -> doc::Code {
+        doc::Code::from(&node)
+    }
+}
+
+impl From<&kuchiki::NodeRef> for doc::Code {
+    fn from(node: &kuchiki::NodeRef) -> doc::Code {
+        doc::Code::new(node_to_text(node))
+    }
+}
+
+impl<T> From<kuchiki::NodeDataRef<T>> for doc::Code {
+    fn from(node: kuchiki::NodeDataRef<T>) -> doc::Code {
+        node.as_node().into()
+    }
+}
+
 fn node_to_text(node: &kuchiki::NodeRef) -> String {
     let mut s = String::new();
     push_node_to_text(&mut s, node);
@@ -272,7 +290,7 @@ fn get_fields(
 
     let mut next = heading.as_ref().and_then(NodeRefExt::next_sibling_element);
     let mut name: Option<String> = None;
-    let mut definition: Option<doc::Text> = None;
+    let mut definition: Option<doc::Code> = None;
 
     while let Some(element) = &next {
         if element.is_element(&local_name!("span")) && element.has_class("structfield") {
@@ -449,7 +467,7 @@ fn get_method_group(
     let mut methods = MemberDocs::new(parent, ty);
 
     let mut name: Option<String> = None;
-    let mut definition: Option<doc::Text> = None;
+    let mut definition: Option<doc::Code> = None;
     for element in impl_items.children() {
         if element.is_element(heading_type) && element.has_class("method") {
             methods.push(&mut name, &mut definition, None)?;
@@ -473,7 +491,7 @@ fn get_variants(
 
     let mut next = heading.as_ref().and_then(NodeRefExt::next_sibling_element);
     let mut name: Option<String> = None;
-    let mut definition: Option<doc::Text> = None;
+    let mut definition: Option<doc::Code> = None;
     while let Some(element) = &next {
         if element.is_element(&local_name!("div")) {
             if element.has_class("variant") {
@@ -604,7 +622,7 @@ impl<'a> MemberDocs<'a> {
     pub fn push(
         &mut self,
         name: &mut Option<String>,
-        definition: &mut Option<doc::Text>,
+        definition: &mut Option<doc::Code>,
         description: Option<doc::Text>,
     ) -> anyhow::Result<()> {
         let name = name.take();
@@ -719,13 +737,9 @@ mod tests {
         assert_eq!(name, doc.name);
         assert_eq!(doc::ItemType::Method, doc.ty);
         let definition = doc.definition.unwrap();
-        assert_eq!("pub fn as_node(&self) -> &NodeRef", &definition.plain);
         assert_eq!(
-            "<code id=\"as_node.v\">\
-             pub fn <a class=\"fnname\" href=\"#method.as_node\">as_node</a>(&amp;self) \
-             -&gt; &amp;<a class=\"struct\" href=\"../kuchiki/struct.NodeRef.html\" \
-             title=\"struct kuchiki::NodeRef\">NodeRef</a></code>",
-            &definition.html
+            doc::Code::new("pub fn as_node(&self) -> &NodeRef".to_owned()),
+            definition
         );
         assert!(doc.description.is_some());
     }

@@ -44,8 +44,8 @@ impl super::Printer for PlainTextRenderer {
         Ok(())
     }
 
-    fn print_code(&self, indent: usize, code: &doc::Text) -> io::Result<()> {
-        for line in code.plain.split('\n') {
+    fn print_code(&self, indent: usize, code: &doc::Code) -> io::Result<()> {
+        for line in code.split('\n') {
             writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
         }
         Ok(())

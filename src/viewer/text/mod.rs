@@ -21,7 +21,7 @@ pub trait Printer: fmt::Debug + marker::Sized {
 
     fn print_html(&self, indent: usize, s: &doc::Text, show_links: bool) -> io::Result<()>;
 
-    fn print_code(&self, indent: usize, code: &doc::Text) -> io::Result<()>;
+    fn print_code(&self, indent: usize, code: &doc::Code) -> io::Result<()>;
 
     fn println(&self) -> io::Result<()>;
 }

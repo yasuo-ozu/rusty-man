@@ -97,19 +97,21 @@ impl super::Printer for RichTextRenderer {
         Ok(())
     }
 
-    fn print_code(&self, indent: usize, code: &doc::Text) -> io::Result<()> {
+    fn print_code(&self, indent: usize, code: &doc::Code) -> io::Result<()> {
         if self.highlight {
             let syntax = self.syntax_set.find_syntax_by_extension("rs").unwrap();
             let mut h = syntect::easy::HighlightLines::new(syntax, &self.theme);
 
-            for line in syntect::util::LinesWithEndings::from(&code.plain) {
+            for line in syntect::util::LinesWithEndings::from(code.as_ref()) {
                 let ranges = h.highlight(line, &self.syntax_set);
                 write!(io::stdout(), "{}", " ".repeat(indent))?;
                 self.render_syntax(&ranges)?;
             }
             writeln!(io::stdout())?;
         } else {
-            self.print_html(indent, code, false)?;
+            for line in code.split('\n') {
+                writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
+            }
         }
 
         Ok(())
