@@ -268,7 +268,7 @@ fn get_fields(
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::StructField;
     let mut fields = MemberDocs::new(parent, ty);
-    let heading = select_first(document, &format!("#{}", ty.group_id()))?;
+    let heading = select_first(document, &format!("#{}", get_item_group_id(ty)))?;
 
     let mut next = heading.as_ref().and_then(NodeRefExt::next_sibling_element);
     let mut name: Option<String> = None;
@@ -469,7 +469,7 @@ fn get_variants(
 ) -> anyhow::Result<(doc::ItemType, Vec<doc::MemberGroup>)> {
     let ty = doc::ItemType::Variant;
     let mut variants = MemberDocs::new(parent, ty);
-    let heading = select_first(document, &format!("#{}", ty.group_id()))?;
+    let heading = select_first(document, &format!("#{}", get_item_group_id(ty)))?;
 
     let mut next = heading.as_ref().and_then(NodeRefExt::next_sibling_element);
     let mut name: Option<String> = None;
@@ -557,7 +557,7 @@ fn get_members(
     ty: doc::ItemType,
 ) -> anyhow::Result<Vec<doc::Doc>> {
     let mut members: Vec<doc::Doc> = Vec::new();
-    if let Some(table) = select_first(document, &format!("#{} + table", ty.group_id()))? {
+    if let Some(table) = select_first(document, &format!("#{} + table", get_item_group_id(ty)))? {
         let items = select(table.as_node(), "td:first-child > :first-child")?;
         for item in items {
             let item_name = item.as_node().text_contents();
@@ -637,6 +637,39 @@ impl<'a> MemberDocs<'a> {
 impl<'a> From<MemberDocs<'a>> for Vec<doc::Doc> {
     fn from(md: MemberDocs<'a>) -> Self {
         md.docs
+    }
+}
+
+fn get_item_group_id(ty: doc::ItemType) -> &'static str {
+    use doc::ItemType;
+
+    match ty {
+        ItemType::Module => "modules",
+        ItemType::ExternCrate => "extern-crates",
+        ItemType::Import => "imports",
+        ItemType::Struct => "structs",
+        ItemType::Enum => "enums",
+        ItemType::Function => "functions",
+        ItemType::Typedef => "types",
+        ItemType::Static => "statics",
+        ItemType::Trait => "traits",
+        ItemType::Impl => "impls",
+        ItemType::TyMethod => "required-methods",
+        ItemType::Method => "methods",
+        ItemType::StructField => "fields",
+        ItemType::Variant => "variants",
+        ItemType::Macro => "macros",
+        ItemType::Primitive => "primitives",
+        ItemType::AssocType => "associated-types",
+        ItemType::Constant => "constants",
+        ItemType::AssocConst => "associated-consts",
+        ItemType::Union => "unions",
+        ItemType::ForeignType => "foreign-types",
+        ItemType::Keyword => "keywords",
+        ItemType::OpaqueTy => "opaque-types",
+        ItemType::ProcAttribute => "proc-attributes",
+        ItemType::ProcDerive => "proc-derives",
+        ItemType::TraitAlias => "trait-aliases",
     }
 }
 
