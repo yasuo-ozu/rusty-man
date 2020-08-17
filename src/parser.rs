@@ -77,25 +77,17 @@ impl Parser {
         doc.description = description.map(From::from);
         doc.definition = definition.map(From::from);
 
-        let (ty, groups) = get_variants(&self.document, name)?;
-        if !groups.is_empty() {
-            doc.groups.push((ty, groups));
-        }
-        let (ty, groups) = get_fields(&self.document, name)?;
-        if !groups.is_empty() {
-            doc.groups.push((ty, groups));
-        }
-        let (ty, groups) = get_assoc_types(&self.document, name)?;
-        if !groups.is_empty() {
-            doc.groups.push((ty, groups));
-        }
-        let (ty, groups) = get_methods(&self.document, name)?;
-        if !groups.is_empty() {
-            doc.groups.push((ty, groups));
-        }
-        let (ty, groups) = get_implementations(&self.document, name)?;
-        if !groups.is_empty() {
-            doc.groups.push((ty, groups));
+        let members = vec![
+            get_variants(&self.document, name)?,
+            get_fields(&self.document, name)?,
+            get_assoc_types(&self.document, name)?,
+            get_methods(&self.document, name)?,
+            get_implementations(&self.document, name)?,
+        ];
+        for (ty, groups) in members.into_iter() {
+            if !groups.is_empty() {
+                doc.groups.push((ty, groups));
+            }
         }
 
         Ok(doc)
