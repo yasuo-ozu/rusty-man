@@ -10,7 +10,7 @@ use anyhow::anyhow;
 
 use crate::doc;
 use crate::index;
-use crate::parser;
+use crate::parser::html;
 
 /// Documentation source, for example a local directory.
 pub trait Source {
@@ -128,7 +128,7 @@ impl DirSource {
             root.display()
         );
         if let Some(local_name) = name.rest() {
-            let parser = parser::Parser::from_file(root.join("all.html"))?;
+            let parser = html::Parser::from_file(root.join("all.html"))?;
             if let Some(path) = parser.find_item(local_name)? {
                 let file_name = path::Path::new(&path)
                     .file_name()
@@ -136,7 +136,7 @@ impl DirSource {
                     .to_str()
                     .unwrap();
                 let ty: doc::ItemType = file_name.splitn(2, '.').next().unwrap().parse()?;
-                parser::Parser::from_file(root.join(path))?
+                html::Parser::from_file(root.join(path))?
                     .parse_item_doc(name, ty)
                     .map(Some)
             } else {
@@ -165,7 +165,7 @@ impl DirSource {
         };
         let path = root.join(module_path).join("index.html");
         if path.is_file() {
-            parser::Parser::from_file(path)?
+            html::Parser::from_file(path)?
                 .parse_module_doc(name)
                 .map(Some)
         } else {
@@ -181,9 +181,9 @@ impl DirSource {
         );
         if let Some(parent) = name.parent() {
             if let Some(rest) = parent.rest() {
-                let parser = parser::Parser::from_file(root.join("all.html"))?;
+                let parser = html::Parser::from_file(root.join("all.html"))?;
                 if let Some(path) = parser.find_item(rest)? {
-                    let parser = parser::Parser::from_file(root.join(path))?;
+                    let parser = html::Parser::from_file(root.join(path))?;
                     if let Some(ty) = parser.find_member(name)? {
                         return parser.parse_member_doc(name, ty).map(Some);
                     }

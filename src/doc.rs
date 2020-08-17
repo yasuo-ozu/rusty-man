@@ -7,7 +7,7 @@ use std::fmt;
 use std::ops;
 use std::str;
 
-use crate::parser;
+use crate::parser::html;
 
 #[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Name {
@@ -356,7 +356,7 @@ impl Doc {
 
     pub fn find_examples(&self) -> anyhow::Result<Vec<Example>> {
         if let Some(description) = &self.description {
-            parser::Parser::from_string(&description.html)?.find_examples()
+            html::Parser::from_string(&description.html)?.find_examples()
         } else {
             Ok(Vec::new())
         }
