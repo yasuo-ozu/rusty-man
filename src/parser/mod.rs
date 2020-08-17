@@ -11,12 +11,16 @@
 //! - The `AllTypes::print` function generates the HTML for the `all.html` page using the
 //!   `print_entries` function.
 
+mod util;
+
 use std::path;
 
 use anyhow::Context;
 use markup5ever::local_name;
 
 use crate::doc;
+
+use util::NodeRefExt;
 
 pub struct Parser {
     document: kuchiki::NodeRef,
@@ -50,11 +54,9 @@ impl Parser {
     }
 
     pub fn find_item(&self, item: &str) -> anyhow::Result<Option<String>> {
-        use std::ops::Deref;
-
         let item = select(&self.document, "ul.docblock li a")?
             .find(|e| e.text_contents() == item)
-            .and_then(|e| get_attribute(e.deref(), "href"));
+            .and_then(|e| e.get_attribute("href"));
         Ok(item)
     }
 
@@ -101,7 +103,8 @@ impl Parser {
             .as_node()
             .parent()
             .with_context(|| format!("The member {} does not have a parent", name))?;
-        let parent_id = get_node_attribute(&heading, "id")
+        let parent_id = heading
+            .get_attribute("id")
             .with_context(|| format!("The heading for member {} does not have an ID", name))?;
         let ty: doc::ItemType = parent_id.splitn(2, '.').next().unwrap().parse()?;
         let docblock = heading.next_sibling();
@@ -162,11 +165,11 @@ fn node_to_text(node: &kuchiki::NodeRef) -> String {
 }
 
 fn push_node_to_text(s: &mut String, node: &kuchiki::NodeRef) {
-    let is_docblock = has_class(node, "docblock");
+    let is_docblock = node.has_class("docblock");
 
-    let add_newline = if is_element(node, &local_name!("br")) {
+    let add_newline = if node.is_element(&local_name!("br")) {
         true
-    } else if has_class(node, "fmt-newline") || is_docblock {
+    } else if node.has_class("fmt-newline") || is_docblock {
         !s.is_empty() && !s.ends_with('\n')
     } else {
         false
@@ -222,7 +225,10 @@ fn it_select_first<I: kuchiki::iter::NodeIterator>(
 }
 
 fn get_example(node: &kuchiki::NodeRef) -> doc::Example {
-    let description_element = node.parent().as_ref().and_then(previous_sibling_element);
+    let description_element = node
+        .parent()
+        .as_ref()
+        .and_then(NodeRefExt::previous_sibling_element);
     let description = description_element
         .and_then(|n| {
             if n.text_contents().ends_with(':') {
@@ -252,7 +258,8 @@ const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
 ];
 
 fn get_id_part(node: &kuchiki::NodeRef, i: usize) -> Option<String> {
-    get_node_attribute(node, "id").and_then(|s| s.splitn(2, '.').nth(i).map(ToOwned::to_owned))
+    node.get_attribute("id")
+        .and_then(|s| s.splitn(2, '.').nth(i).map(ToOwned::to_owned))
 }
 
 fn get_fields(
@@ -263,17 +270,17 @@ fn get_fields(
     let mut fields = MemberDocs::new(parent, ty);
     let heading = select_first(document, &format!("#{}", ty.group_id()))?;
 
-    let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
+    let mut next = heading.as_ref().and_then(NodeRefExt::next_sibling_element);
     let mut name: Option<String> = None;
     let mut definition: Option<doc::Text> = None;
 
     while let Some(element) = &next {
-        if is_element(element, &local_name!("span")) && has_class(element, ty.class()) {
+        if element.is_element(&local_name!("span")) && element.has_class(ty.class()) {
             fields.push(&mut name, &mut definition, None)?;
             name = get_id_part(element, 1);
             definition = Some(element.into());
-        } else if is_element(element, &local_name!("div")) {
-            if has_class(element, "docblock") {
+        } else if element.is_element(&local_name!("div")) {
+            if element.has_class("docblock") {
                 fields.push(&mut name, &mut definition, Some(element.into()))?;
             }
         } else {
@@ -399,15 +406,15 @@ fn get_method_groups(
 ) -> anyhow::Result<Vec<doc::MemberGroup>> {
     let mut groups: Vec<doc::MemberGroup> = Vec::new();
     let heading = select_first(document, &format!("#{}", heading_id))?;
-    let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
+    let mut next = heading.as_ref().and_then(NodeRefExt::next_sibling_element);
     while let Some(subheading) = &next {
-        if is_element(subheading, &local_name!("h3")) && has_class(subheading, "impl") {
+        if subheading.is_element(&local_name!("h3")) && subheading.has_class("impl") {
             if let Some(title_element) = subheading.first_child() {
                 let title = title_element.text_contents();
                 next = subheading.next_sibling();
                 if let Some(impl_items) = &next {
-                    if is_element(impl_items, &local_name!("div"))
-                        && has_class(impl_items, "impl-items")
+                    if impl_items.is_element(&local_name!("div"))
+                        && impl_items.has_class("impl-items")
                     {
                         let group = get_method_group(
                             parent,
@@ -444,11 +451,11 @@ fn get_method_group(
     let mut name: Option<String> = None;
     let mut definition: Option<doc::Text> = None;
     for element in impl_items.children() {
-        if is_element(&element, heading_type) && has_class(&element, "method") {
+        if element.is_element(heading_type) && element.has_class("method") {
             methods.push(&mut name, &mut definition, None)?;
             name = get_id_part(&element, 1);
             definition = it_select_first(element.children(), "code")?.map(From::from);
-        } else if is_element(&element, &local_name!("div")) && has_class(&element, "docblock") {
+        } else if element.is_element(&local_name!("div")) && element.has_class("docblock") {
             methods.push(&mut name, &mut definition, Some(element.into()))?;
         }
     }
@@ -464,16 +471,16 @@ fn get_variants(
     let mut variants = MemberDocs::new(parent, ty);
     let heading = select_first(document, &format!("#{}", ty.group_id()))?;
 
-    let mut next = heading.and_then(|n| next_sibling_element(n.as_node()));
+    let mut next = heading.as_ref().and_then(NodeRefExt::next_sibling_element);
     let mut name: Option<String> = None;
     let mut definition: Option<doc::Text> = None;
     while let Some(element) = &next {
-        if is_element(element, &local_name!("div")) {
-            if has_class(element, ty.class()) {
+        if element.is_element(&local_name!("div")) {
+            if element.has_class(ty.class()) {
                 variants.push(&mut name, &mut definition, None)?;
                 name = get_id_part(element, 1);
                 definition = Some(element.into());
-            } else if has_class(element, "docblock") {
+            } else if element.has_class("docblock") {
                 variants.push(&mut name, &mut definition, Some(element.into()))?;
             }
 
@@ -526,7 +533,7 @@ fn get_implementation_group(
 
     if let Some(list_div) = list_div {
         for item in list_div.as_node().children() {
-            if is_element(&item, &local_name!("h3")) && has_class(&item, "impl") {
+            if item.is_element(&local_name!("h3")) && item.has_class("impl") {
                 let code = item.first_child();
                 let a = code
                     .as_ref()
@@ -569,49 +576,6 @@ fn get_member(
     name: &str,
 ) -> anyhow::Result<Option<kuchiki::NodeDataRef<kuchiki::ElementData>>> {
     select_first(document, &format!("#{}\\.v", name))
-}
-
-fn get_attribute(element: &kuchiki::ElementData, name: &str) -> Option<String> {
-    element.attributes.borrow().get(name).map(ToOwned::to_owned)
-}
-
-fn get_node_attribute(node: &kuchiki::NodeRef, name: &str) -> Option<String> {
-    node.as_element().and_then(|e| get_attribute(e, name))
-}
-
-fn next_sibling_element(node: &kuchiki::NodeRef) -> Option<kuchiki::NodeRef> {
-    let mut next = node.next_sibling();
-    while let Some(node) = &next {
-        if node.as_element().is_some() {
-            break;
-        }
-        next = node.next_sibling();
-    }
-    next
-}
-
-fn previous_sibling_element(node: &kuchiki::NodeRef) -> Option<kuchiki::NodeRef> {
-    let mut previous = node.previous_sibling();
-    while let Some(node) = &previous {
-        if node.as_element().is_some() {
-            break;
-        }
-        previous = node.previous_sibling();
-    }
-    previous
-}
-
-fn is_element(node: &kuchiki::NodeRef, name: &markup5ever::LocalName) -> bool {
-    node.as_element()
-        .map(|e| &e.name.local == name)
-        .unwrap_or(false)
-}
-
-fn has_class(node: &kuchiki::NodeRef, class: &str) -> bool {
-    node.as_element()
-        .and_then(|e| get_attribute(&e, "class"))
-        .map(|a| a.split(' ').any(|s| s == class))
-        .unwrap_or(false)
 }
 
 struct MemberDocs<'a> {
