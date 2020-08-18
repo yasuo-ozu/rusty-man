@@ -14,7 +14,11 @@ use crate::parser;
 
 /// Documentation source, for example a local directory.
 pub trait Source {
-    fn find_doc(&self, name: &doc::Fqn) -> anyhow::Result<Option<doc::Doc>>;
+    fn find_doc(
+        &self,
+        name: &doc::Fqn,
+        ty: Option<doc::ItemType>,
+    ) -> anyhow::Result<Option<doc::Doc>>;
     fn load_index(&self) -> anyhow::Result<Option<index::Index>>;
 }
 
@@ -32,6 +36,31 @@ impl DirSource {
     fn new(path: path::PathBuf) -> Self {
         log::info!("Created directory source at '{}'", path.display());
         Self { path }
+    }
+
+    fn find_doc_html(
+        &self,
+        path: &path::Path,
+        name: &doc::Fqn,
+        ty: Option<doc::ItemType>,
+    ) -> anyhow::Result<Option<doc::Doc>> {
+        if let Some(ty) = ty {
+            match ty {
+                doc::ItemType::Module => self.get_module(&path, name),
+                doc::ItemType::StructField
+                | doc::ItemType::Variant
+                | doc::ItemType::AssocType
+                | doc::ItemType::AssocConst
+                | doc::ItemType::Method => self.get_member(&path, name),
+                _ => self.get_item(&path, name),
+            }
+        } else {
+            self.get_item(&path, name)
+                .transpose()
+                .or_else(|| self.get_module(&path, name).transpose())
+                .or_else(|| self.get_member(&path, name).transpose())
+                .transpose()
+        }
     }
 
     fn get_crate(&self, name: &str) -> Option<path::PathBuf> {
@@ -124,19 +153,18 @@ impl DirSource {
 }
 
 impl Source for DirSource {
-    fn find_doc(&self, name: &doc::Fqn) -> anyhow::Result<Option<doc::Doc>> {
+    fn find_doc(
+        &self,
+        name: &doc::Fqn,
+        ty: Option<doc::ItemType>,
+    ) -> anyhow::Result<Option<doc::Doc>> {
         log::info!(
             "Searching documentation for '{}' in dir source '{}'",
             name,
             self.path.display()
         );
         if let Some(crate_path) = self.get_crate(name.krate()) {
-            let doc = self
-                .get_item(&crate_path, name)
-                .transpose()
-                .or_else(|| self.get_module(&crate_path, name).transpose())
-                .or_else(|| self.get_member(&crate_path, name).transpose())
-                .transpose()?;
+            let doc = self.find_doc_html(&crate_path, name, ty)?;
             if doc.is_some() {
                 log::info!(
                     "Found documentation for '{}' in dir source '{}'",

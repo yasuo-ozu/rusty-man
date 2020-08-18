@@ -40,7 +40,13 @@ impl fmt::Display for IndexItem {
         if self.description.is_empty() {
             write!(f, "{} ({})", &self.name, self.ty.name())
         } else {
-            write!(f, "{} ({}): {}", &self.name, self.ty.name(), &self.description)
+            write!(
+                f,
+                "{} ({}): {}",
+                &self.name,
+                self.ty.name(),
+                &self.description
+            )
         }
     }
 }

@@ -10,6 +10,8 @@ SPDX-License-Identifier: MIT
 - Improve handling of different items with same name:
   - Add the item type to the item list if multiple matches are found in the
     search index.
+  - Respect the item type when opening the documentation for an item that has
+    been found in the search index.
 
 ## v0.2.0 (2020-08-11)
 
