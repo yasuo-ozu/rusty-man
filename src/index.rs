@@ -31,15 +31,16 @@ pub struct Index {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct IndexItem {
     pub name: doc::Fqn,
+    pub ty: doc::ItemType,
     pub description: String,
 }
 
 impl fmt::Display for IndexItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.description.is_empty() {
-            write!(f, "{}", &self.name)
+            write!(f, "{} ({})", &self.name, self.ty.name())
         } else {
-            write!(f, "{}: {}", &self.name, &self.description)
+            write!(f, "{} ({}): {}", &self.name, self.ty.name(), &self.description)
         }
     }
 }
@@ -194,6 +195,7 @@ impl Index {
                     log::info!("Found index match '{}'", full_name);
                     matches.push(IndexItem {
                         name: full_name,
+                        ty: item.ty,
                         description: item.desc.clone(),
                     });
                 }

@@ -5,6 +5,12 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
+## Unreleased
+
+- Improve handling of different items with same name:
+  - Add the item type to the item list if multiple matches are found in the
+    search index.
+
 ## v0.2.0 (2020-08-11)
 
 This minor release adds support for syntax highlighting of code snippets and
