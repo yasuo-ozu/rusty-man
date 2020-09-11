@@ -1,0 +1,63 @@
+---
+source: tests/output.rs
+expression: "get_stdout(&[\"-e\", item])"
+---
+log                                          Module log                                    rusty-man
+
+EXAMPLES
+   Example 1 of 4
+      use log::{info, warn};
+      
+      pub fn shave_the_yak(yak: &mut Yak) {
+          info!(target: "yak_events", "Commencing yak shaving for {:?}", yak);
+      
+          loop {
+              match find_a_razor() {
+                  Ok(razor) => {
+                      info!("Razor located: {}", razor);
+                      yak.shave(razor);
+                      break;
+                  }
+                  Err(err) => {
+                      warn!("Unable to locate a razor: {}, retrying", err);
+                  }
+              }
+          }
+      }
+
+   Example 2 of 4
+      use log::{Record, Level, Metadata};
+      
+      struct SimpleLogger;
+      
+      impl log::Log for SimpleLogger {
+          fn enabled(&self, metadata: &Metadata) -> bool {
+              metadata.level() <= Level::Info
+          }
+      
+          fn log(&self, record: &Record) {
+              if self.enabled(record.metadata()) {
+                  println!("{} - {}", record.level(), record.args());
+              }
+          }
+      
+          fn flush(&self) {}
+      }
+
+   Example 3 of 4
+      use log::{SetLoggerError, LevelFilter};
+      
+      static LOGGER: SimpleLogger = SimpleLogger;
+      
+      pub fn init() -> Result<(), SetLoggerError> {
+          log::set_logger(&LOGGER)
+              .map(|()| log::set_max_level(LevelFilter::Info))
+      }
+
+   Example 4 of 4
+      pub fn init() -> Result<(), SetLoggerError> {
+          log::set_boxed_logger(Box::new(SimpleLogger))
+              .map(|()| log::set_max_level(LevelFilter::Info))
+      }
+
+

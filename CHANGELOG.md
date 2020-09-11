@@ -17,6 +17,7 @@ SPDX-License-Identifier: MIT
     `tests/html` directory.
   - Use one snapshot per test case and rustdoc version.
 - Refactor member lookup for compatibility with Rust 1.46.0.
+- Add tests for Rust 1.46.0.
 
 ## v0.2.0 (2020-08-11)
 

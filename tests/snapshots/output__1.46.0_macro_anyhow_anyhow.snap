@@ -1,0 +1,30 @@
+---
+source: tests/output.rs
+expression: "get_stdout(&[item])"
+---
+anyhow                                  Macro anyhow::anyhow                               rusty-man
+
+SYNOPSIS
+      macro_rules! anyhow {
+          ($msg:literal $(,)?) => { ... };
+          ($err:expr $(,)?) => { ... };
+          ($fmt:expr, $($arg:tt)*) => { ... };
+      }
+
+DESCRIPTION
+      Construct an ad-hoc error from a string.
+      
+      This evaluates to an `Error`. It can take either just a string, or a format string with
+      arguments. It also can take any custom type which implements `Debug` and `Display`.
+      
+      # Example
+      
+      use anyhow::{anyhow, Result};
+      fn lookup(key: &str) -> Result<V> {
+          if key.len() != 16 {
+              return Err(anyhow!("key length must be 16 characters, got {:?}", key));
+          }
+          // ...
+      }
+
+
