@@ -60,8 +60,17 @@ impl Parser {
         Ok(item)
     }
 
-    pub fn find_member(&self, name: &doc::Fqn) -> anyhow::Result<bool> {
-        get_member(&self.document, name.last()).map(|member| member.is_some())
+    pub fn find_member(&self, name: &doc::Fqn) -> anyhow::Result<Option<doc::ItemType>> {
+        let member = get_member(&self.document, name.last())?;
+        if let Some(member) = member {
+            let id = member
+                .get_attribute("id")
+                .with_context(|| format!("The member {} does not have an ID", name))?;
+            let ty = id.splitn(2, '.').next().unwrap().parse()?;
+            Ok(Some(ty))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn parse_item_doc(&self, name: &doc::Fqn, ty: doc::ItemType) -> anyhow::Result<doc::Doc> {
@@ -95,22 +104,16 @@ impl Parser {
         Ok(doc)
     }
 
-    pub fn parse_member_doc(&self, name: &doc::Fqn) -> anyhow::Result<doc::Doc> {
+    pub fn parse_member_doc(&self, name: &doc::Fqn, ty: doc::ItemType) -> anyhow::Result<doc::Doc> {
         log::info!("Parsing member documentation for '{}'", name);
-        let member = get_member(&self.document, name.last())?
+        let heading = select_first(&self.document, &get_member_selector(ty, name.last()))?
             .with_context(|| format!("Could not find member {}", name))?;
-        let heading = member
-            .as_node()
-            .parent()
-            .with_context(|| format!("The member {} does not have a parent", name))?;
-        let parent_id = heading
-            .get_attribute("id")
-            .with_context(|| format!("The heading for member {} does not have an ID", name))?;
-        let ty: doc::ItemType = parent_id.splitn(2, '.').next().unwrap().parse()?;
-        let docblock = heading.next_sibling();
+        let code = select_first(heading.as_node(), "code")?
+            .with_context(|| format!("The member {} does not have a definition", name))?;
+        let docblock = heading.as_node().next_sibling();
 
         let mut doc = doc::Doc::new(name.clone(), ty);
-        doc.definition = Some(member.into());
+        doc.definition = Some(code.into());
         doc.description = docblock.map(From::from);
         Ok(doc)
     }
@@ -589,11 +592,27 @@ fn get_members(
     Ok(members)
 }
 
+const MEMBER_TYPES: &[doc::ItemType] = &[
+    doc::ItemType::StructField,
+    doc::ItemType::Variant,
+    doc::ItemType::AssocType,
+    doc::ItemType::AssocConst,
+    doc::ItemType::Method,
+];
+
 fn get_member(
     document: &kuchiki::NodeRef,
     name: &str,
 ) -> anyhow::Result<Option<kuchiki::NodeDataRef<kuchiki::ElementData>>> {
-    select_first(document, &format!("#{}\\.v", name))
+    let selectors: Vec<_> = MEMBER_TYPES
+        .iter()
+        .map(|ty| get_member_selector(*ty, name))
+        .collect();
+    select_first(document, &selectors.join(", "))
+}
+
+fn get_member_selector(ty: doc::ItemType, name: &str) -> String {
+    format!("#{}\\.{}", get_item_id(ty), name)
 }
 
 struct MemberDocs<'a> {
@@ -655,6 +674,39 @@ impl<'a> MemberDocs<'a> {
 impl<'a> From<MemberDocs<'a>> for Vec<doc::Doc> {
     fn from(md: MemberDocs<'a>) -> Self {
         md.docs
+    }
+}
+
+fn get_item_id(ty: doc::ItemType) -> &'static str {
+    use doc::ItemType;
+
+    match ty {
+        ItemType::Module => "mod",
+        ItemType::ExternCrate => "externcrate",
+        ItemType::Import => "import",
+        ItemType::Struct => "struct",
+        ItemType::Union => "union",
+        ItemType::Enum => "enum",
+        ItemType::Function => "fn",
+        ItemType::Typedef => "type",
+        ItemType::Static => "static",
+        ItemType::Trait => "trait",
+        ItemType::Impl => "impl",
+        ItemType::TyMethod => "tymethod",
+        ItemType::Method => "method",
+        ItemType::StructField => "structfield",
+        ItemType::Variant => "variant",
+        ItemType::Macro => "macro",
+        ItemType::Primitive => "primitive",
+        ItemType::AssocType => "associatedtype",
+        ItemType::Constant => "constant",
+        ItemType::AssocConst => "associatedconstant",
+        ItemType::ForeignType => "foreigntype",
+        ItemType::Keyword => "keyword",
+        ItemType::OpaqueTy => "opaque",
+        ItemType::ProcAttribute => "attr",
+        ItemType::ProcDerive => "derive",
+        ItemType::TraitAlias => "traitalias",
     }
 }
 
@@ -734,7 +786,7 @@ mod tests {
             let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
             let doc = super::Parser::from_file(path)
                 .unwrap()
-                .parse_member_doc(&name)
+                .parse_member_doc(&name, doc::ItemType::Method)
                 .unwrap();
 
             assert_eq!(name, doc.name);

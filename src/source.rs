@@ -142,8 +142,8 @@ impl DirSource {
                 let parser = parser::Parser::from_file(root.join("all.html"))?;
                 if let Some(path) = parser.find_item(rest)? {
                     let parser = parser::Parser::from_file(root.join(path))?;
-                    if parser.find_member(name)? {
-                        return parser.parse_member_doc(name).map(Some);
+                    if let Some(ty) = parser.find_member(name)? {
+                        return parser.parse_member_doc(name, ty).map(Some);
                     }
                 }
             }
