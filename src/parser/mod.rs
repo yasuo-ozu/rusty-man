@@ -780,6 +780,19 @@ mod tests {
     }
 
     #[test]
+    fn test_find_member() {
+        with_rustdoc("*", |_, path| {
+            let path = path.join("kuchiki").join("struct.NodeDataRef.html");
+            let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
+            let ty = super::Parser::from_file(path)
+                .unwrap()
+                .find_member(&name)
+                .unwrap();
+            assert_eq!(Some(doc::ItemType::Method), ty);
+        });
+    }
+
+    #[test]
     fn test_parse_member_doc() {
         with_rustdoc("*", |_, path| {
             let path = path.join("kuchiki").join("struct.NodeDataRef.html");
