@@ -7,7 +7,7 @@
 //! list of items groupd by their crate.
 //!
 //! For details on the format of the search index, see the `html/render.rs` file in `librustdoc`.
-//! Note that the format of the search index changed in April 2020 with commit
+//! Note that the format of the search index changed in April 2020 (Rust 1.44.0) with commit
 //! b4fb3069ce82f61f84a9487d17fb96389d55126a.  We only support the new format as the old format is
 //! much harder to parse.
 //!
@@ -215,8 +215,9 @@ impl Index {
 
 #[cfg(test)]
 mod tests {
-    use super::{CrateData, Data, ItemData};
+    use super::{CrateData, Data, Index, IndexItem, ItemData};
     use crate::doc::ItemType;
+    use crate::test_utils::with_rustdoc;
 
     #[test]
     fn test_empty() {
@@ -253,5 +254,43 @@ mod tests {
         )
         .unwrap();
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_index() {
+        with_rustdoc(">=1.44.0", |_, path| {
+            let index = Index::load(path.join("search-index.js")).unwrap().unwrap();
+
+            let empty: Vec<IndexItem> = Vec::new();
+
+            let node_data_ref = vec![IndexItem {
+                name: "kuchiki::NodeDataRef".to_owned().into(),
+                ty: ItemType::Struct,
+                description: "Holds a strong reference to a node, but dereferences to…".to_owned(),
+            }];
+            assert_eq!(node_data_ref, index.find(&"NodeDataRef".to_owned().into()));
+            assert_eq!(
+                node_data_ref,
+                index.find(&"kuchiki::NodeDataRef".to_owned().into())
+            );
+            assert_eq!(empty, index.find(&"DataRef".to_owned().into()));
+            assert_eq!(empty, index.find(&"NodeDataReff".to_owned().into()));
+
+            let as_node = vec![IndexItem {
+                name: "kuchiki::NodeDataRef::as_node".to_owned().into(),
+                ty: ItemType::Method,
+                description: "Access the corresponding node.".to_owned(),
+            }];
+            assert_eq!(as_node, index.find(&"as_node".to_owned().into()));
+            assert_eq!(
+                as_node,
+                index.find(&"NodeDataRef::as_node".to_owned().into())
+            );
+            assert_eq!(
+                as_node,
+                index.find(&"kuchiki::NodeDataRef::as_node".to_owned().into())
+            );
+            assert_eq!(empty, index.find(&"DataRef::as_node".to_owned().into()));
+        });
     }
 }

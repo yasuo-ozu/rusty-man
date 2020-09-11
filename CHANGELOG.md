@@ -20,6 +20,7 @@ SPDX-License-Identifier: MIT
 - Add tests for Rust 1.46.0.
 - Improve test suite:
   - Add test for `Parser::find_member`.
+  - Add test for `Index::find`.
 
 ## v0.2.0 (2020-08-11)
 
