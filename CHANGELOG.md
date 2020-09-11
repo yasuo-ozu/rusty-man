@@ -5,7 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-## Unreleased
+## v0.3.0 (2020-09-11)
+
+This minor release adds support for Rust 1.46.0 and significantly improves the
+test suite.
 
 - Improve handling of different items with same name:
   - Add the item type to the item list if multiple matches are found in the

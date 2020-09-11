@@ -3,7 +3,7 @@
 
 [package]
 name = "rusty-man"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Robin Krahl <robin.krahl@ireas.org>"]
 edition = "2018"
 description = "Command-line viewer for rustdoc documentation"
