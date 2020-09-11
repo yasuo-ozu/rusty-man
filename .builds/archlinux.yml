@@ -27,9 +27,7 @@ tasks:
       cargo build --release
   - test: |
       cd rusty-man
-      cargo doc
-      cargo test
-      cargo test -- --ignored
+      RUSTY_MAN_GENERATE=1 cargo test
   - clippy: |
       cd rusty-man
       cargo clippy -- -D warnings

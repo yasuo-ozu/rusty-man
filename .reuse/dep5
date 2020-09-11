@@ -19,3 +19,26 @@ Copyright: 2014 The Rust Project Developers
 Copyright: 2018 Developers of the Rand project
 License: MIT
 
+Files: tests/html/*/anyhow/*
+Copyright: 2019-2020 David Tolnay <dtolnay@gmail.com>
+License: MIT
+
+Files: tests/html/*/kuchiki/*
+Copyright: 2015-2020 Simon Sapin <simon.sapin@exyr.org>
+License: MIT
+
+Files: tests/html/*/log/*
+Copyright: 2014 The Rust Project Developers
+License: MIT
+
+Files: tests/html/*/rand_core/*
+Copyright: 2014 The Rust Project Developers
+Copyright: 2018 Developers of the Rand project
+License: MIT
+
+Files: tests/html/*/search-index.js
+Copyright: 2019-2020 David Tolnay <dtolnay@gmail.com>
+Copyright: 2015-2020 Simon Sapin <simon.sapin@exyr.org>
+Copyright: 2014 The Rust Project Developers
+Copyright: 2018 Developers of the Rand project
+License: MIT

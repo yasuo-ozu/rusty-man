@@ -1,120 +1,92 @@
 // SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
+#[path = "../src/test_utils.rs"]
+mod test_utils;
+
 use std::env;
+use std::path;
 use std::process;
-use std::sync;
 
 use assert_cmd::prelude::*;
 
-static mut DIR: Option<tempfile::TempDir> = None;
-static INIT: sync::Once = sync::Once::new();
+use test_utils::with_rustdoc;
 
-fn run_cargo_doc() {
-    INIT.call_once(|| {
-        let dir = tempfile::tempdir().unwrap();
-        process::Command::new(env::var_os("CARGO").unwrap())
-            .arg("doc")
-            .args(&["--package", "anyhow"])
-            .args(&["--package", "log"])
-            .args(&["--package", "rand_core"])
-            .arg("--target-dir")
-            .arg(dir.path())
-            .output()
-            .unwrap();
-        unsafe {
-            DIR = Some(dir);
-        }
-    });
-}
-
-fn run(args: &[&str]) -> assert_cmd::assert::Assert {
-    run_cargo_doc();
-
-    let dir = unsafe { DIR.as_ref().unwrap() };
-
+fn run(path: impl AsRef<path::Path>, args: &[&str]) -> assert_cmd::assert::Assert {
     process::Command::cargo_bin(env!("CARGO_PKG_NAME"))
         .unwrap()
         .args(&["--no-default-sources", "--source"])
-        .arg(dir.path().join("doc"))
+        .arg(path.as_ref())
         .args(&["--viewer", "plain"])
         .args(&["--width", "100"])
         .args(args)
         .assert()
 }
 
-fn get_stdout(args: &[&str]) -> String {
-    let cmd = run(args).success().stderr("");
+fn get_stdout(path: impl AsRef<path::Path>, args: &[&str]) -> String {
+    let cmd = run(path, args).success().stderr("");
     String::from_utf8(cmd.get_output().stdout.clone()).unwrap()
 }
 
-fn assert_doc(item: &str) {
-    insta::assert_snapshot!(get_stdout(&[item]));
-}
-
-fn assert_examples(item: &str) {
-    insta::assert_snapshot!(get_stdout(&["-e", item]));
+macro_rules! generate_run {
+    ($name:ident $version:literal $args:expr) => {
+        #[test]
+        fn $name() {
+            with_rustdoc($version, |version, path| {
+                insta::assert_snapshot!(
+                    format!("{}_{}", version, std::stringify!($name)),
+                    get_stdout(path, $args)
+                );
+            });
+        }
+    };
 }
 
 macro_rules! assert_doc {
-    ($( $( #[$attrs:meta] )* $name:ident: $item:literal ),* $(,)? ) => {
+    ($( $name:ident($version:literal): $item:literal ),* $(,)? ) => {
         $(
-            #[test]
-            $( #[$attrs] )*
-            fn $name() {
-                assert_doc($item);
-            }
+            generate_run!($name $version &[$item]);
         )*
     };
 }
 
 macro_rules! assert_examples {
-    ($( $( #[$attrs:meta] )* $name:ident: $item:literal ),* $(,)? ) => {
+    ($( $name:ident($version:literal): $item:literal ),* $(,)? ) => {
         $(
-            #[test]
-            $( #[$attrs] )*
-            fn $name() {
-                assert_examples($item);
-            }
+            generate_run!($name $version &["-e", $item]);
         )*
     };
 }
 
 assert_doc![
-    test_mod_anyhow: "anyhow",
-    test_macro_anyhow_anyhow: "anyhow::anyhow",
-    test_macro_anyhow_ensure: "anyhow::ensure",
-    #[ignore]
-    test_struct_anyhow_error: "anyhow::Error",
-    test_trait_anyhow_context: "anyhow::Context",
-    test_type_anyhow_result: "anyhow::Result",
+    mod_anyhow("*"): "anyhow",
+    macro_anyhow_anyhow("*"): "anyhow::anyhow",
+    macro_anyhow_ensure("*"): "anyhow::ensure",
+    struct_anyhow_error("*"): "anyhow::Error",
+    trait_anyhow_context("*"): "anyhow::Context",
+    type_anyhow_result("*"): "anyhow::Result",
 ];
 
 assert_doc![
-    #[ignore]
-    test_mod_log: "log",
-    #[ignore]
-    test_macro_log_debug: "log::debug",
-    #[ignore]
-    test_struct_log_metadata: "log::Metadata",
-    test_enum_log_level: "log::Level",
-    #[ignore]
-    test_constant_log_static_max_level: "log::STATIC_MAX_LEVEL",
-    test_trait_log_log: "log::Log",
-    test_fn_log_logger: "log::logger",
-    test_fn_log_set_logger_racy: "log::set_logger_racy",
+    mod_log("*"): "log",
+    macro_log_debug("*"): "log::debug",
+    struct_log_metadata("*"): "log::Metadata",
+    enum_log_level("*"): "log::Level",
+    constant_log_static_max_level("*"): "log::STATIC_MAX_LEVEL",
+    trait_log_log("*"): "log::Log",
+    fn_log_logger("*"): "log::logger",
+    fn_log_set_logger_racy("*"): "log::set_logger_racy",
 ];
 
 assert_doc![
-    test_mod_rand_core: "rand_core",
-    test_trait_rand_core_rngcore: "rand_core::RngCore",
-    test_trait_rand_core_seedablerng: "rand_core::SeedableRng",
-    test_struct_rand_core_block_blockrng: "rand_core::block::BlockRng",
+    mod_rand_core("*"): "rand_core",
+    trait_rand_core_rngcore("*"): "rand_core::RngCore",
+    trait_rand_core_seedablerng("*"): "rand_core::SeedableRng",
+    struct_rand_core_block_blockrng("*"): "rand_core::block::BlockRng",
 ];
 
 assert_examples![
-    test_examples_mod_anyhow: "anyhow",
-    #[ignore]
-    test_examples_mod_log: "log",
-    test_examples_struct_rand_core_rngcore: "rand_core::RngCore",
+    examples_mod_anyhow("*"): "anyhow",
+    examples_mod_log(">1.40.0"): "log",
+    examples_struct_rand_core_rngcore("*"): "rand_core::RngCore",
 ];

@@ -95,7 +95,8 @@ tracker][] for bug reports or features requests.
 
 ## License
 
-This project is licensed under the [MIT License][].
+This project is licensed under the [MIT License][].  For license information
+for the data used by the test suite, see the [`.reuse/dep5`][] file.
 
 `rusty-man` complies with [version 3.0 of the REUSE specification][reuse].
 
@@ -108,6 +109,7 @@ This project is licensed under the [MIT License][].
 [public archive]: https://lists.sr.ht/~ireas/rusty-man-dev
 [issue tracker]: https://todo.sr.ht/~ireas/rusty-man
 [MIT license]: https://opensource.org/licenses/MIT
+[`.reuse/dep5`]: https://git.sr.ht/~ireas/rusty-man/tree/refs/heads/master/.reuse/dep5
 [reuse]: https://reuse.software/practices/3.0/
 
 [pkg-aur]: https://aur.archlinux.org/packages/rusty-man/

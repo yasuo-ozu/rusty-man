@@ -1,0 +1,55 @@
+---
+source: tests/output.rs
+expression: "get_stdout(&[item])"
+---
+rand_core                                 Module rand_core                                 rusty-man
+
+DESCRIPTION
+      Random number generation traits
+      
+      This crate is mainly of interest to crates publishing implementations of [`RngCore`]. Other
+      users are encouraged to use the [`rand`][1] crate instead which re-exports the main traits and
+      error types.
+      
+      [`RngCore`] is the core trait implemented by algorithmic pseudo-random number generators and
+      external random-number sources.
+      
+      [`SeedableRng`] is an extension trait for construction from fixed seeds and other random
+      number generators.
+      
+      [`Error`] is provided for error-handling. It is safe to use in `no_std` environments.
+      
+      The [`impls`] and [`le`] sub-modules include a few small functions to assist implementation of
+      [`RngCore`].
+      
+      [1] https://docs.rs/rand
+
+MODULES
+      block
+            The `BlockRngCore` trait and implementation helpers
+
+      impls
+            Helper functions for implementing `RngCore` functions.
+
+      le
+            Little-Endian utilities
+
+STRUCTS
+      Error
+            Error type of random number generators
+
+      OsRng
+            A random number generator that retrieves randomness from from the operating system.
+
+TRAITS
+      CryptoRng
+            A marker trait used to indicate that an [`RngCore`] or `BlockRngCore` implementation is
+            supposed to be cryptographically secure.
+
+      RngCore
+            The core of a random number generator.
+
+      SeedableRng
+            A random number generator that can be explicitly seeded.
+
+

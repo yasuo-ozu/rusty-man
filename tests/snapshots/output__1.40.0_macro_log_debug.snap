@@ -1,0 +1,27 @@
+---
+source: tests/output.rs
+expression: "get_stdout(path, &[item])"
+---
+log                                       Macro log::debug                                 rusty-man
+
+SYNOPSIS
+      macro_rules! debug {
+          (target: $target:expr, $($arg:tt)+) => { ... };
+          ($($arg:tt)+) => { ... };
+      }
+
+DESCRIPTION
+      Logs a message at the debug level.
+      
+      # Examples
+      
+      `use log::debug;
+      # fn main() {
+      # struct Position { x: f32, y: f32 }
+      let pos = Position { x: 3.234, y: -1.223 };
+      debug!("New position: x: {}, y: {}", pos.x, pos.y);
+      debug!(target: "app_events", "New position: x: {}, y: {}", pos.x, pos.y);
+      # }
+      `
+
+

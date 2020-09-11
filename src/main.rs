@@ -36,6 +36,8 @@ mod doc;
 mod index;
 mod parser;
 mod source;
+#[cfg(test)]
+mod test_utils;
 mod viewer;
 
 use std::io;
@@ -225,50 +227,41 @@ fn select_item(
 
 #[cfg(test)]
 mod tests {
-    use std::path;
-
     use crate::source;
-
-    pub fn ensure_docs() -> path::PathBuf {
-        let doc = path::PathBuf::from("./target/doc");
-        assert!(
-            doc.is_dir(),
-            "You have to run `cargo doc` before running this test case."
-        );
-        doc
-    }
+    use crate::test_utils::with_rustdoc;
 
     #[test]
     fn test_find_doc() {
-        let path = ensure_docs();
-        let sources = vec![source::get_source(path).unwrap()];
+        with_rustdoc("*", |_, path| {
+            let sources = vec![source::get_source(path).unwrap()];
 
-        assert!(
-            super::find_doc(&sources, &"kuchiki".to_owned().into(), None)
-                .unwrap()
-                .is_some()
-        );
-        assert!(
-            super::find_doc(&sources, &"kuchiki::NodeRef".to_owned().into(), None)
-                .unwrap()
-                .is_some()
-        );
-        assert!(super::find_doc(
-            &sources,
-            &"kuchiki::NodeDataRef::as_node".to_owned().into(),
-            None
-        )
-        .unwrap()
-        .is_some());
-        assert!(
-            super::find_doc(&sources, &"kuchiki::traits".to_owned().into(), None)
-                .unwrap()
-                .is_some()
-        );
-        assert!(
-            super::find_doc(&sources, &"kachiki".to_owned().into(), None)
-                .unwrap()
-                .is_none()
-        );
+            assert!(
+                super::find_doc(&sources, &"kuchiki".to_owned().into(), None)
+                    .unwrap()
+                    .is_some()
+            );
+            assert!(
+                super::find_doc(&sources, &"kuchiki::NodeRef".to_owned().into(), None)
+                    .unwrap()
+                    .is_some()
+            );
+            assert!(super::find_doc(
+                &sources,
+                &"kuchiki::NodeDataRef::as_node".to_owned().into(),
+                None
+            )
+            .unwrap()
+            .is_some());
+            assert!(
+                super::find_doc(&sources, &"kuchiki::traits".to_owned().into(), None)
+                    .unwrap()
+                    .is_some()
+            );
+            assert!(
+                super::find_doc(&sources, &"kachiki".to_owned().into(), None)
+                    .unwrap()
+                    .is_none()
+            );
+        });
     }
 }

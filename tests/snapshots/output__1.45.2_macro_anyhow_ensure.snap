@@ -1,0 +1,33 @@
+---
+source: tests/output.rs
+expression: "get_stdout(&[item])"
+---
+anyhow                                  Macro anyhow::ensure                               rusty-man
+
+SYNOPSIS
+      macro_rules! ensure {
+          ($cond:expr, $msg:literal $(,)?) => { ... };
+          ($cond:expr, $err:expr $(,)?) => { ... };
+          ($cond:expr, $fmt:expr, $($arg:tt)*) => { ... };
+      }
+
+DESCRIPTION
+      Return early with an error if a condition is not satisfied.
+      
+      This macro is equivalent to `if !$cond { return Err(From::from($err)); }`.
+      
+      Analogously to `assert!`, `ensure!` takes a condition and exits the function if the condition
+      fails. Unlike `assert!`, `ensure!` returns an `Error` rather than panicking.
+      
+      # Example
+      
+      ensure!(user == 0, "only user 0 is allowed");
+      #[derive(Error, Debug)]
+      enum ScienceError {
+          #[error("recursion limit exceeded")]
+          RecursionLimitExceeded,
+          ...
+      }
+      ensure!(depth <= MAX_DEPTH, ScienceError::RecursionLimitExceeded);
+
+

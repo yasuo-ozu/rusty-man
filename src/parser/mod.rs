@@ -694,53 +694,57 @@ fn get_item_group_id(ty: doc::ItemType) -> &'static str {
 #[cfg(test)]
 mod tests {
     use crate::doc;
+    use crate::test_utils::with_rustdoc;
 
     #[test]
     fn test_find_item() {
-        let path = crate::tests::ensure_docs();
-        let path = path.join("kuchiki").join("all.html");
-        let parser = super::Parser::from_file(path).unwrap();
+        with_rustdoc("*", |_, path| {
+            let path = path.join("kuchiki").join("all.html");
+            let parser = super::Parser::from_file(path).unwrap();
 
-        assert_eq!(None, parser.find_item("foobar").unwrap());
-        assert_eq!(
-            Some("struct.NodeRef.html".to_owned()),
-            parser.find_item("NodeRef").unwrap()
-        );
+            assert_eq!(None, parser.find_item("foobar").unwrap());
+            assert_eq!(
+                Some("struct.NodeRef.html".to_owned()),
+                parser.find_item("NodeRef").unwrap()
+            );
+        });
     }
 
     #[test]
     fn test_parse_item_doc() {
-        let path = crate::tests::ensure_docs();
-        let path = path.join("kuchiki").join("struct.NodeRef.html");
-        let name: doc::Fqn = "kuchiki::NodeRef".to_owned().into();
-        let doc = super::Parser::from_file(path)
-            .unwrap()
-            .parse_item_doc(&name, doc::ItemType::Struct)
-            .unwrap();
+        with_rustdoc("*", |_, path| {
+            let path = path.join("kuchiki").join("struct.NodeRef.html");
+            let name: doc::Fqn = "kuchiki::NodeRef".to_owned().into();
+            let doc = super::Parser::from_file(path)
+                .unwrap()
+                .parse_item_doc(&name, doc::ItemType::Struct)
+                .unwrap();
 
-        assert_eq!(name, doc.name);
-        assert_eq!(doc::ItemType::Struct, doc.ty);
-        assert!(doc.definition.is_some());
-        assert!(doc.description.is_some());
+            assert_eq!(name, doc.name);
+            assert_eq!(doc::ItemType::Struct, doc.ty);
+            assert!(doc.definition.is_some());
+            assert!(doc.description.is_some());
+        });
     }
 
     #[test]
     fn test_parse_member_doc() {
-        let path = crate::tests::ensure_docs();
-        let path = path.join("kuchiki").join("struct.NodeDataRef.html");
-        let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
-        let doc = super::Parser::from_file(path)
-            .unwrap()
-            .parse_member_doc(&name)
-            .unwrap();
+        with_rustdoc("*", |_, path| {
+            let path = path.join("kuchiki").join("struct.NodeDataRef.html");
+            let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
+            let doc = super::Parser::from_file(path)
+                .unwrap()
+                .parse_member_doc(&name)
+                .unwrap();
 
-        assert_eq!(name, doc.name);
-        assert_eq!(doc::ItemType::Method, doc.ty);
-        let definition = doc.definition.unwrap();
-        assert_eq!(
-            doc::Code::new("pub fn as_node(&self) -> &NodeRef".to_owned()),
-            definition
-        );
-        assert!(doc.description.is_some());
+            assert_eq!(name, doc.name);
+            assert_eq!(doc::ItemType::Method, doc.ty);
+            let definition = doc.definition.unwrap();
+            assert_eq!(
+                doc::Code::new("pub fn as_node(&self) -> &NodeRef".to_owned()),
+                definition
+            );
+            assert!(doc.description.is_some());
+        });
     }
 }
