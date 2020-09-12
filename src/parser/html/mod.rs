@@ -759,11 +759,11 @@ fn get_item_group_id(ty: doc::ItemType) -> &'static str {
 #[cfg(test)]
 mod tests {
     use crate::doc;
-    use crate::test_utils::with_rustdoc;
+    use crate::test_utils::{with_rustdoc, Format};
 
     #[test]
     fn test_find_item() {
-        with_rustdoc("*", |_, path| {
+        with_rustdoc("*", Format::all(), |_, _, path| {
             let path = path.join("kuchiki").join("all.html");
             let parser = super::Parser::from_file(path).unwrap();
 
@@ -777,7 +777,7 @@ mod tests {
 
     #[test]
     fn test_parse_item_doc() {
-        with_rustdoc("*", |_, path| {
+        with_rustdoc("*", Format::all(), |_, _, path| {
             let path = path.join("kuchiki").join("struct.NodeRef.html");
             let name: doc::Fqn = "kuchiki::NodeRef".to_owned().into();
             let doc = super::Parser::from_file(path)
@@ -794,7 +794,7 @@ mod tests {
 
     #[test]
     fn test_find_member() {
-        with_rustdoc("*", |_, path| {
+        with_rustdoc("*", Format::all(), |_, _, path| {
             let path = path.join("kuchiki").join("struct.NodeDataRef.html");
             let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
             let ty = super::Parser::from_file(path)
@@ -807,7 +807,7 @@ mod tests {
 
     #[test]
     fn test_parse_member_doc() {
-        with_rustdoc("*", |_, path| {
+        with_rustdoc("*", Format::all(), |_, _, path| {
             let path = path.join("kuchiki").join("struct.NodeDataRef.html");
             let name: doc::Fqn = "kuchiki::NodeDataRef::as_node".to_owned().into();
             let doc = super::Parser::from_file(path)

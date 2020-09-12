@@ -5,6 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
+# Unreleased
+
+- Prepare supporting multiple parser backends.
+
 ## v0.4.2 (2021-06-06)
 
 This patch releases adds support for the new search index format (Rust 1.52.0

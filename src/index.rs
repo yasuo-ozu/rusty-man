@@ -255,7 +255,7 @@ impl Index {
 mod tests {
     use super::{CrateData, Data, Index, IndexItem, ItemData};
     use crate::doc::ItemType;
-    use crate::test_utils::with_rustdoc;
+    use crate::test_utils::{with_rustdoc, Format};
 
     #[test]
     fn test_empty() {
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_index() {
-        with_rustdoc(">=1.44.0, <1.50.0", |_, path| {
+        with_rustdoc(">=1.44.0, <1.50.0", Format::all(), |_, _, path| {
             let index = Index::load(path.join("search-index.js")).unwrap().unwrap();
 
             let empty: Vec<IndexItem> = Vec::new();
@@ -315,7 +315,7 @@ mod tests {
             assert_eq!(empty, index.find(&"NodeDataReff".to_owned().into()));
         });
 
-        with_rustdoc(">=1.50.0", |_, path| {
+        with_rustdoc(">=1.50.0", Format::all(), |_, _, path| {
             let index = Index::load(path.join("search-index.js")).unwrap().unwrap();
 
             let empty: Vec<IndexItem> = Vec::new();
@@ -334,7 +334,7 @@ mod tests {
             assert_eq!(empty, index.find(&"NodeDataReff".to_owned().into()));
         });
 
-        with_rustdoc(">=1.44.0", |_, path| {
+        with_rustdoc(">=1.44.0", Format::all(), |_, _, path| {
             let index = Index::load(path.join("search-index.js")).unwrap().unwrap();
 
             let empty: Vec<IndexItem> = Vec::new();

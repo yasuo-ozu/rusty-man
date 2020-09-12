@@ -208,11 +208,11 @@ fn select_item(
 #[cfg(test)]
 mod tests {
     use crate::source;
-    use crate::test_utils::with_rustdoc;
+    use crate::test_utils::{with_rustdoc, Format};
 
     #[test]
     fn test_find_doc() {
-        with_rustdoc("*", |_, path| {
+        with_rustdoc("*", Format::all(), |_, _, path| {
             let sources = source::Sources::new(vec![source::get_source(path).unwrap()]);
 
             assert!(sources
