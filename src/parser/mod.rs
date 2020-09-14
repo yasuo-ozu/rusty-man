@@ -279,8 +279,15 @@ const MODULE_MEMBER_TYPES: &[doc::ItemType] = &[
 ];
 
 fn get_id_part(node: &kuchiki::NodeRef, i: usize) -> Option<String> {
-    node.get_attribute("id")
-        .and_then(|s| s.splitn(2, '.').nth(i).map(ToOwned::to_owned))
+    // id of format <type>.<name> (or <type>.<name>-<idx> for name collisions)
+    if let Some(id) = node.get_attribute("id") {
+        id.splitn(2, '.')
+            .nth(i)
+            .and_then(|s| s.splitn(2, '-').next())
+            .map(ToOwned::to_owned)
+    } else {
+        None
+    }
 }
 
 fn get_fields(

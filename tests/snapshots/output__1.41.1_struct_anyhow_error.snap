@@ -1,6 +1,6 @@
 ---
 source: tests/output.rs
-expression: "get_stdout(path, &[item])"
+expression: "get_stdout(path, &[\"anyhow::Error\"])"
 ---
 anyhow                                  Struct anyhow::Error                               rusty-man
 
@@ -239,21 +239,21 @@ METHODS
             Downcast this error object by mutable reference.
 
    Methods from Deref<Target = dyn StdError + Send + Sync + 'static>
-      is-1
+      is
             pub fn is<T>(&self) -> bool 
             where
                 T: 'static + Error,
 
             Returns `true` if the boxed type is the same as `T`
 
-      downcast_ref-1
+      downcast_ref
             pub fn downcast_ref<T>(&self) -> Option<&T> 
             where
                 T: 'static + Error,
 
             Returns some reference to the boxed value if it is of type `T`, or `None` if it isn't.
 
-      downcast_mut-1
+      downcast_mut
             pub fn downcast_mut<T>(&mut self) -> Option<&mut T> 
             where
                 T: 'static + Error,

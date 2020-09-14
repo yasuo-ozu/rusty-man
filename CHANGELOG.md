@@ -5,6 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
+# Unreleased
+
+- Remove suffix from duplicate members (e. g. from Deref implementations).
+
 ## v0.3.0 (2020-09-11)
 
 This minor release adds support for Rust 1.46.0 and significantly improves the
