@@ -23,8 +23,8 @@ pub trait Viewer: fmt::Debug {
 
 pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
     let viewer: Box<dyn Viewer> = match s.to_lowercase().as_ref() {
-        "plain" => Box::new(text::TextViewer::with_plain_text()),
-        "rich" => Box::new(text::TextViewer::with_rich_text()),
+        "plain" => Box::new(text::TextViewer::new(text::TextMode::Plain)),
+        "rich" => Box::new(text::TextViewer::new(text::TextMode::Rich)),
         _ => anyhow::bail!("The viewer {} is not supported", s),
     };
     Ok(viewer)
@@ -33,9 +33,10 @@ pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
 pub fn get_default() -> Box<dyn Viewer> {
     use crossterm::tty::IsTty;
 
-    if io::stdout().is_tty() {
-        Box::new(text::TextViewer::with_rich_text())
+    let text_mode = if io::stdout().is_tty() {
+        text::TextMode::Rich
     } else {
-        Box::new(text::TextViewer::with_plain_text())
-    }
+        text::TextMode::Plain
+    };
+    Box::new(text::TextViewer::new(text_mode))
 }

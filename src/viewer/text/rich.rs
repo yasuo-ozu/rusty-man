@@ -19,8 +19,8 @@ pub struct RichTextRenderer {
     theme: syntect::highlighting::Theme,
 }
 
-impl super::Printer for RichTextRenderer {
-    fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
+impl RichTextRenderer {
+    pub fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
         Ok(Self {
             line_length: utils::get_line_length(&args),
             highlight: !args.no_syntax_highlight,
@@ -28,14 +28,19 @@ impl super::Printer for RichTextRenderer {
             theme: utils::get_syntect_theme(&args)?,
         })
     }
+}
 
-    fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()> {
+impl utils::ManRenderer for RichTextRenderer {
+    type Error = io::Error;
+
+    fn print_title(&mut self, left: &str, middle: &str, right: &str) -> io::Result<()> {
         write!(io::stdout(), "{}", crossterm::style::Attribute::Bold)?;
         super::print_title(self.line_length, left, middle, right)?;
         writeln!(io::stdout(), "{}", crossterm::style::Attribute::Reset)
     }
 
-    fn print_html(&self, indent: usize, s: &doc::Text, _show_links: bool) -> io::Result<()> {
+    fn print_text(&mut self, indent: u8, s: &doc::Text) -> io::Result<()> {
+        let indent = usize::from(indent);
         let indent = if indent >= self.line_length / 2 {
             0
         } else {
@@ -54,7 +59,8 @@ impl super::Printer for RichTextRenderer {
         Ok(())
     }
 
-    fn print_code(&self, indent: usize, code: &doc::Code) -> io::Result<()> {
+    fn print_code(&mut self, indent: u8, code: &doc::Code) -> io::Result<()> {
+        let indent = usize::from(indent);
         if self.highlight {
             let syntax = self.syntax_set.find_syntax_by_extension("rs").unwrap();
             let mut h = syntect::easy::HighlightLines::new(syntax, &self.theme);
@@ -77,16 +83,14 @@ impl super::Printer for RichTextRenderer {
         Ok(())
     }
 
-    fn print_heading(&self, indent: usize, level: usize, s: &str) -> io::Result<()> {
+    fn print_heading(&mut self, indent: u8, s: &str) -> io::Result<()> {
+        use crossterm::style::Attribute;
         let mut text = crossterm::style::style(s);
-        if level < 4 {
-            use crossterm::style::Attribute;
-            text = text.attribute(Attribute::Bold).attribute(Attribute::Reset);
-        }
-        writeln!(io::stdout(), "{}{}", " ".repeat(indent), &text)
+        text = text.attribute(Attribute::Bold).attribute(Attribute::Reset);
+        writeln!(io::stdout(), "{}{}", " ".repeat(usize::from(indent)), &text)
     }
 
-    fn println(&self) -> io::Result<()> {
+    fn println(&mut self) -> io::Result<()> {
         writeln!(io::stdout())
     }
 }

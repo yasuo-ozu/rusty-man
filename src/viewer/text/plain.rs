@@ -20,42 +20,46 @@ struct Decorator {
     show_links: bool,
 }
 
-impl super::Printer for PlainTextRenderer {
-    fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
-        Ok(Self {
+impl PlainTextRenderer {
+    pub fn new(args: args::ViewerArgs) -> Self {
+        Self {
             line_length: utils::get_line_length(&args),
-        })
+        }
     }
+}
 
-    fn print_title(&self, left: &str, middle: &str, right: &str) -> io::Result<()> {
+impl utils::ManRenderer for PlainTextRenderer {
+    type Error = io::Error;
+
+    fn print_title(&mut self, left: &str, middle: &str, right: &str) -> io::Result<()> {
         super::print_title(self.line_length, left, middle, right)?;
         writeln!(io::stdout())
     }
 
-    fn print_html(&self, indent: usize, s: &doc::Text, show_links: bool) -> io::Result<()> {
+    fn print_text(&mut self, indent: u8, s: &doc::Text) -> io::Result<()> {
         let lines = html2text::from_read_with_decorator(
             s.html.as_bytes(),
-            self.line_length - indent,
-            Decorator::new(show_links),
+            self.line_length - usize::from(indent),
+            Decorator::new(true),
         );
         for line in lines.trim().split('\n') {
-            writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
+            writeln!(io::stdout(), "{}{}", " ".repeat(indent.into()), line)?;
         }
         Ok(())
     }
 
-    fn print_code(&self, indent: usize, code: &doc::Code) -> io::Result<()> {
+    fn print_code(&mut self, indent: u8, code: &doc::Code) -> io::Result<()> {
         for line in code.split('\n') {
-            writeln!(io::stdout(), "{}{}", " ".repeat(indent), line)?;
+            writeln!(io::stdout(), "{}{}", " ".repeat(indent.into()), line)?;
         }
         Ok(())
     }
 
-    fn print_heading(&self, indent: usize, _level: usize, s: &str) -> io::Result<()> {
-        writeln!(io::stdout(), "{}{}", " ".repeat(indent), s)
+    fn print_heading(&mut self, indent: u8, s: &str) -> io::Result<()> {
+        writeln!(io::stdout(), "{}{}", " ".repeat(indent.into()), s)
     }
 
-    fn println(&self) -> io::Result<()> {
+    fn println(&mut self) -> io::Result<()> {
         writeln!(io::stdout())
     }
 }
