@@ -7,7 +7,7 @@ use html2text::render::text_renderer;
 
 use crate::args;
 use crate::doc;
-use crate::viewer;
+use crate::viewer::utils;
 
 #[derive(Clone, Debug)]
 pub struct PlainTextRenderer {
@@ -23,7 +23,7 @@ struct Decorator {
 impl super::Printer for PlainTextRenderer {
     fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
         Ok(Self {
-            line_length: viewer::get_line_length(&args),
+            line_length: utils::get_line_length(&args),
         })
     }
 

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 mod text;
+mod utils;
 
-use std::cmp;
 use std::fmt;
 use std::io;
 
@@ -37,15 +37,5 @@ pub fn get_default() -> Box<dyn Viewer> {
         Box::new(text::TextViewer::with_rich_text())
     } else {
         Box::new(text::TextViewer::with_plain_text())
-    }
-}
-
-pub fn get_line_length(args: &args::ViewerArgs) -> usize {
-    if let Some(width) = args.width {
-        width
-    } else if let Ok((cols, _)) = crossterm::terminal::size() {
-        cmp::min(cols.into(), args.max_width)
-    } else {
-        args.max_width
     }
 }

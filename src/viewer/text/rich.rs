@@ -7,7 +7,7 @@ use html2text::render::text_renderer;
 
 use crate::args;
 use crate::doc;
-use crate::viewer;
+use crate::viewer::utils;
 
 type RichString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>>;
 
@@ -19,56 +19,13 @@ pub struct RichTextRenderer {
     theme: syntect::highlighting::Theme,
 }
 
-impl RichTextRenderer {
-    fn render_string(&self, ts: &RichString) -> io::Result<()> {
-        let content = get_styled_content(ts);
-        write!(io::stdout(), "{}", content)
-    }
-
-    fn render_syntax(&self, line: &[(syntect::highlighting::Style, &str)]) -> io::Result<()> {
-        use crossterm::style::{Attribute, Color};
-        use syntect::highlighting::FontStyle;
-
-        for (style, text) in line {
-            let mut content = crossterm::style::style(text).with(Color::Rgb {
-                r: style.foreground.r,
-                g: style.foreground.g,
-                b: style.foreground.b,
-            });
-            if style.font_style.contains(FontStyle::BOLD) {
-                // TODO: investigate why NoBold does not work
-                content = content
-                    .attribute(Attribute::Bold)
-                    .attribute(Attribute::Reset);
-            }
-            if style.font_style.contains(FontStyle::UNDERLINE) {
-                content = content.attribute(Attribute::Underlined);
-            }
-            if style.font_style.contains(FontStyle::ITALIC) {
-                content = content.attribute(Attribute::Italic);
-            }
-            write!(io::stdout(), "{}", content)?;
-        }
-
-        Ok(())
-    }
-}
-
 impl super::Printer for RichTextRenderer {
     fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
-        use anyhow::Context;
-
-        let mut theme_set = syntect::highlighting::ThemeSet::load_defaults();
-        let theme_name = args.theme.as_deref().unwrap_or("base16-eighties.dark");
-        let theme = theme_set
-            .themes
-            .remove(theme_name)
-            .with_context(|| format!("Could not find theme {}", theme_name))?;
         Ok(Self {
-            line_length: viewer::get_line_length(&args),
+            line_length: utils::get_line_length(&args),
             highlight: !args.no_syntax_highlight,
             syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
-            theme,
+            theme: utils::get_syntect_theme(&args)?,
         })
     }
 
@@ -89,7 +46,7 @@ impl super::Printer for RichTextRenderer {
             write!(io::stdout(), "{}", " ".repeat(indent))?;
             for element in line.iter() {
                 if let text_renderer::TaggedLineElement::Str(ts) = element {
-                    self.render_string(ts)?;
+                    write!(io::stdout(), "{}", style_rich_string(ts))?;
                 }
             }
             writeln!(io::stdout())?;
@@ -105,7 +62,10 @@ impl super::Printer for RichTextRenderer {
             for line in syntect::util::LinesWithEndings::from(code.as_ref()) {
                 let ranges = h.highlight(line, &self.syntax_set);
                 write!(io::stdout(), "{}", " ".repeat(indent))?;
-                self.render_syntax(&ranges)?;
+                for (style, text) in ranges {
+                    let content = style_syntect_string(style, text);
+                    write!(io::stdout(), "{}", content)?;
+                }
             }
             writeln!(io::stdout())?;
         } else {
@@ -131,7 +91,34 @@ impl super::Printer for RichTextRenderer {
     }
 }
 
-fn get_styled_content(ts: &RichString) -> crossterm::style::StyledContent<&str> {
+pub fn style_syntect_string(
+    style: syntect::highlighting::Style,
+    s: &str,
+) -> crossterm::style::StyledContent<&str> {
+    use crossterm::style::{Attribute, Color};
+    use syntect::highlighting::FontStyle;
+
+    let mut content = crossterm::style::style(s).with(Color::Rgb {
+        r: style.foreground.r,
+        g: style.foreground.g,
+        b: style.foreground.b,
+    });
+    if style.font_style.contains(FontStyle::BOLD) {
+        // TODO: investigate why NoBold does not work
+        content = content
+            .attribute(Attribute::Bold)
+            .attribute(Attribute::Reset);
+    }
+    if style.font_style.contains(FontStyle::UNDERLINE) {
+        content = content.attribute(Attribute::Underlined);
+    }
+    if style.font_style.contains(FontStyle::ITALIC) {
+        content = content.attribute(Attribute::Italic);
+    }
+    content
+}
+
+pub fn style_rich_string(ts: &RichString) -> crossterm::style::StyledContent<&str> {
     use crossterm::style::{Attribute, Color};
     use text_renderer::RichAnnotation;
 
