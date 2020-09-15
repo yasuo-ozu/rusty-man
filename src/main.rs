@@ -65,9 +65,9 @@ fn main() -> anyhow::Result<()> {
                 "Could not find examples for {}",
                 &args.keyword
             );
-            viewer.open_examples(args.viewer_args, &doc, examples)
+            viewer.open_examples(sources, args.viewer_args, &doc, examples)
         } else {
-            viewer.open(args.viewer_args, &doc)
+            viewer.open(sources, args.viewer_args, &doc)
         }
     } else {
         // item selection cancelled by user

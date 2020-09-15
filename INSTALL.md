@@ -16,7 +16,23 @@ rusty-man packages are available for these distributions:
 
 ### Build Requirements
 
-To compile rusty-man, you need Rust 1.40 or later.
+To compile rusty-man, you need Rust 1.40 or later.  The `tui` backend requires
+the ncurses library in the default search path and a C compiler.
+
+If you don’t want to use ncurses, you can select another [`cursive`][] backend
+by replacing this line in `Cargo.toml`:
+
+```toml
+cursive = "0.15.0"
+```
+
+with this:
+
+```toml
+cursive = { version = "0.15.0", default-features = false, feature = ["termion-backend"] }
+```
+
+[`cursive`]: https://lib.rs/cursive
 
 ### Installing from Git
 

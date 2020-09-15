@@ -285,18 +285,29 @@ fn print_heading<M: ManRenderer + ?Sized>(
     viewer.print_heading(indent, text.as_ref())
 }
 
+/// Link handling mode for the [`RichDecorator`].
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum LinkMode {
+    /// Annotate links with `RichAnnotation::Link`.
+    Annotate,
+    /// List links at the end of the block.
+    List,
+}
+
 /// A decorator that generates rich text.
 #[derive(Clone)]
 pub struct RichDecorator {
     link_filter: fn(&str) -> bool,
+    link_mode: LinkMode,
     ignore_next_link: bool,
     links: Vec<String>,
 }
 
 impl RichDecorator {
-    pub fn new(link_filter: fn(&str) -> bool) -> RichDecorator {
+    pub fn new(link_filter: fn(&str) -> bool, link_mode: LinkMode) -> RichDecorator {
         RichDecorator {
             link_filter,
+            link_mode,
             ignore_next_link: false,
             links: Vec::new(),
         }
@@ -311,11 +322,14 @@ impl text_renderer::TextDecorator for RichDecorator {
         if self.ignore_next_link {
             (String::new(), text_renderer::RichAnnotation::Default)
         } else {
-            self.links.push(url.to_owned());
-            (
-                "[".to_owned(),
-                text_renderer::RichAnnotation::Link(url.to_owned()),
-            )
+            let annotation = text_renderer::RichAnnotation::Link(url.to_owned());
+            match self.link_mode {
+                LinkMode::Annotate => (String::new(), annotation),
+                LinkMode::List => {
+                    self.links.push(url.to_owned());
+                    ("[".to_owned(), annotation)
+                }
+            }
         }
     }
 
@@ -323,7 +337,10 @@ impl text_renderer::TextDecorator for RichDecorator {
         if self.ignore_next_link {
             String::new()
         } else {
-            format!("][{}]", self.links.len() - 1)
+            match self.link_mode {
+                LinkMode::Annotate => String::new(),
+                LinkMode::List => format!("][{}]", self.links.len() - 1),
+            }
         }
     }
 
@@ -373,23 +390,25 @@ impl text_renderer::TextDecorator for RichDecorator {
 
     fn finalise(self) -> Vec<text_renderer::TaggedLine<text_renderer::RichAnnotation>> {
         let mut lines = Vec::new();
-        for (idx, link) in self.links.into_iter().enumerate() {
-            let mut line = text_renderer::TaggedLine::new();
-            line.push_str(text_renderer::TaggedString {
-                s: format!("[{}] ", idx),
-                tag: text_renderer::RichAnnotation::Default,
-            });
-            line.push_str(text_renderer::TaggedString {
-                s: link.clone(),
-                tag: text_renderer::RichAnnotation::Link(link),
-            });
-            lines.push(line);
+        if self.link_mode == LinkMode::List {
+            for (idx, link) in self.links.into_iter().enumerate() {
+                let mut line = text_renderer::TaggedLine::new();
+                line.push_str(text_renderer::TaggedString {
+                    s: format!("[{}] ", idx),
+                    tag: text_renderer::RichAnnotation::Default,
+                });
+                line.push_str(text_renderer::TaggedString {
+                    s: link.clone(),
+                    tag: text_renderer::RichAnnotation::Link(link),
+                });
+                lines.push(line);
+            }
         }
         lines
     }
 
     fn make_subblock_decorator(&self) -> Self {
-        RichDecorator::new(self.link_filter)
+        RichDecorator::new(self.link_filter, self.link_mode)
     }
 }
 

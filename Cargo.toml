@@ -19,6 +19,7 @@ exclude = [".builds/*", "tests/html/*", "tests/snapshots/*"]
 ansi_term = "0.12.1"
 anyhow = "1.0.31"
 atty = "0.2.14"
+cursive = "0.15.0"
 html2text = "0.2.1"
 kuchiki = "0.8.0"
 log = "0.4.11"
@@ -28,7 +29,10 @@ pager = "0.15.0"
 serde_json = "1.0.56"
 serde_tuple = "0.5.0"
 terminal_size = "0.1.13"
+textwrap = "0.12.1"
 toml = "0.5.6"
+url = "2.1.1"
+webbrowser = "0.5.5"
 xdg = "2.2.0"
 
 [dependencies.env_logger]
@@ -50,7 +54,7 @@ features = ["parsing", "regex-onig", "assets", "dump-load"]
 
 [dependencies.text-style]
 version = "0.2.0"
-features = ["ansi_term", "syntect"]
+features = ["ansi_term", "cursive", "syntect"]
 
 [dev-dependencies]
 assert_cmd = "1.0.1"

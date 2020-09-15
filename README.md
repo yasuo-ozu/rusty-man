@@ -53,6 +53,17 @@ Found mulitple matches for u8 – select one of:
 
 For more usage information, run `rusty-man --help`.
 
+## Viewers
+
+rusty-man has three viewers (select one with the `--viewer` option) that
+determine the output format:
+- `plain` prints the documentation to the standard output without formatting.
+  This is the default for non-interactive use.
+- `rich` prints the documentation to the standard output with formatting and
+  optional syntax highlighting.  This is the default for interactive use.
+- `tui` is an interactive terminal interface.  You can read the documentation
+  and follow links.
+
 ## Installation
 
 To install rusty-man from source, clone this repository and use cargo to build
@@ -60,8 +71,10 @@ the project, or use `cargo install`.  See the [`INSTALL.md`][] file for more
 information.  rusty-man is also available as a package for these distributions:
 - Arch Linux: [`rusty-man`][pkg-aur] in the Arch User Repository
 
-rusty-man should run on all platforms, but the `rich` viewer is only available
-for ANSI terminals.  If you have trouble running rusty-man on your platform or
+rusty-man is developed for Unix-like systems.  It should run on other platforms
+too, but with some limitations:  The `rich` viewer uses ANSI escape codes,
+which are not supported on older Windows versions.  The `tui` viewer requires
+the ncurses library.  If you have trouble running rusty-man on your platform or
 if you want to help porting rusty-man to other platforms, please let me know.
 
 ## Integrations

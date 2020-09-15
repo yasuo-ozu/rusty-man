@@ -12,6 +12,8 @@ SPDX-License-Identifier: MIT
   the configuration file.
   - Add `merge` dependency in version 0.1.0.
 - Add syntax highlighting for code snippets in the doc comments.
+- Add interactive tui viewer that adds support for following links from the
+  documentation.
 
 ## v0.3.0 (2020-09-11)
 

@@ -8,6 +8,7 @@ use std::io;
 
 use crate::args;
 use crate::doc;
+use crate::source;
 use crate::viewer::{self, utils};
 
 #[derive(Clone, Debug)]
@@ -41,12 +42,18 @@ impl TextViewer {
 }
 
 impl viewer::Viewer for TextViewer {
-    fn open(&self, args: args::ViewerArgs, doc: &doc::Doc) -> anyhow::Result<()> {
+    fn open(
+        &self,
+        _sources: Vec<Box<dyn source::Source>>,
+        args: args::ViewerArgs,
+        doc: &doc::Doc,
+    ) -> anyhow::Result<()> {
         self.exec(args, |mut viewer| viewer.render_doc(doc))
     }
 
     fn open_examples(
         &self,
+        _sources: Vec<Box<dyn source::Source>>,
         args: args::ViewerArgs,
         doc: &doc::Doc,
         examples: Vec<doc::Example>,

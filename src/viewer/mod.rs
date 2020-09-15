@@ -2,18 +2,26 @@
 // SPDX-License-Identifier: MIT
 
 mod text;
+mod tui;
 mod utils;
 
 use std::fmt;
 
 use crate::args;
 use crate::doc;
+use crate::source;
 
 pub trait Viewer: fmt::Debug {
-    fn open(&self, args: args::ViewerArgs, doc: &doc::Doc) -> anyhow::Result<()>;
+    fn open(
+        &self,
+        sources: Vec<Box<dyn source::Source>>,
+        args: args::ViewerArgs,
+        doc: &doc::Doc,
+    ) -> anyhow::Result<()>;
 
     fn open_examples(
         &self,
+        sources: Vec<Box<dyn source::Source>>,
         args: args::ViewerArgs,
         doc: &doc::Doc,
         examples: Vec<doc::Example>,
@@ -24,6 +32,7 @@ pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
     let viewer: Box<dyn Viewer> = match s.to_lowercase().as_ref() {
         "plain" => Box::new(text::TextViewer::new(text::TextMode::Plain)),
         "rich" => Box::new(text::TextViewer::new(text::TextMode::Rich)),
+        "tui" => Box::new(tui::TuiViewer::new()),
         _ => anyhow::bail!("The viewer {} is not supported", s),
     };
     Ok(viewer)
