@@ -114,9 +114,9 @@ pub fn get_line_length(args: &args::ViewerArgs) -> usize {
     if let Some(width) = args.width {
         width
     } else if let Ok((cols, _)) = crossterm::terminal::size() {
-        cmp::min(cols.into(), args.max_width)
+        cmp::min(cols.into(), args.max_width.unwrap_or(100))
     } else {
-        args.max_width
+        args.max_width.unwrap_or(100)
     }
 }
 

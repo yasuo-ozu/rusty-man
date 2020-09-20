@@ -4,6 +4,7 @@
 use std::fs;
 use std::path;
 
+use merge::Merge;
 use serde::Deserialize;
 use structopt::StructOpt;
 
@@ -22,10 +23,11 @@ use crate::viewer;
 /// rusty-man tries to find an item that exactly matches the given keyword.  If it doesn’t find an
 /// exact match, it reads the search indexes of all available sources and tries to find a partial
 /// match.
-#[derive(Debug, Default, Deserialize, StructOpt)]
+#[derive(Debug, Default, Deserialize, Merge, StructOpt)]
 #[serde(default)]
 pub struct Args {
     /// The keyword to open the documentation for, e. g. `rand_core::RngCore`
+    #[merge(skip)]
     #[serde(skip)]
     pub keyword: doc::Name,
 
@@ -33,6 +35,7 @@ pub struct Args {
     ///
     /// Typically, this is the path of a directory containing the documentation for one or more
     /// crates in subdirectories.
+    #[merge(strategy = merge::vec::prepend)]
     #[structopt(name = "source", short, long, number_of_values = 1)]
     pub source_paths: Vec<String>,
 
@@ -46,6 +49,7 @@ pub struct Args {
     /// If this option is not set, rusty-man appends `$sysroot/share/doc/rust{,-doc}/html` and
     /// `target/doc` to the list of sources if they exist.  `$sysroot` is the output of `rustc
     /// --print sysroot` or `/usr` if that command does not output a valid path.
+    #[merge(strategy = merge::bool::overwrite_false)]
     #[structopt(long)]
     pub no_default_sources: bool,
 
@@ -54,10 +58,12 @@ pub struct Args {
     /// Per default, rusty-man reads the search indexes of all sources and tries to find matching
     /// items if there is no exact match for the keyword.  If this option is set, the search
     /// indexes are not read.
+    #[merge(strategy = merge::bool::overwrite_false)]
     #[structopt(long)]
     pub no_search: bool,
 
     /// Show all examples for the item instead of opening the full documentation.
+    #[merge(strategy = merge::bool::overwrite_false)]
     #[structopt(short, long)]
     pub examples: bool,
 
@@ -70,6 +76,7 @@ pub struct Args {
     ///
     /// If this option is set, rusty-man reads the given configuration file instead.  If this
     /// option is set to "-", rusty-man does not read any configuration files.
+    #[merge(skip)]
     #[structopt(short, long)]
     #[serde(skip)]
     pub config_file: Option<String>,
@@ -79,13 +86,14 @@ pub struct Args {
     pub viewer_args: ViewerArgs,
 }
 
-#[derive(Debug, Default, Deserialize, StructOpt)]
+#[derive(Debug, Default, Deserialize, Merge, StructOpt)]
 #[serde(default)]
 pub struct ViewerArgs {
     /// Disable syntax highlighting.
     ///
     /// Per default, rusty-man tries to highlight Rust code snippets in its output if the rich text
     /// viewer is selected.  If this option is set, it renders the HTML representation instead.
+    #[merge(strategy = merge::bool::overwrite_false)]
     #[structopt(long)]
     pub no_syntax_highlight: bool,
 
@@ -109,8 +117,8 @@ pub struct ViewerArgs {
     ///
     /// Unless the --width option is set, rusty-man sets the width of the text output based on the
     /// width of the terminal with the maximum width set with this optioj.
-    #[structopt(long, default_value = "100")]
-    pub max_width: usize,
+    #[structopt(long)]
+    pub max_width: Option<usize>,
 }
 
 impl Args {
@@ -141,31 +149,6 @@ impl Args {
             toml::from_str(&s).map(Some).map_err(From::from)
         } else {
             Ok(None)
-        }
-    }
-
-    fn merge(&mut self, mut args: Args) {
-        if !args.source_paths.is_empty() {
-            args.source_paths.append(&mut self.source_paths);
-            self.source_paths = args.source_paths;
-        }
-        if self.viewer.is_none() {
-            self.viewer = args.viewer;
-        }
-        if !self.no_default_sources {
-            self.no_default_sources = args.no_default_sources;
-        }
-        if !self.no_search {
-            self.no_search = args.no_search;
-        }
-        if !self.examples {
-            self.examples = args.examples;
-        }
-        if !self.viewer_args.no_syntax_highlight {
-            self.viewer_args.no_syntax_highlight = args.viewer_args.no_syntax_highlight;
-        }
-        if self.viewer_args.theme.is_none() {
-            self.viewer_args.theme = args.viewer_args.theme;
         }
     }
 }
