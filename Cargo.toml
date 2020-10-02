@@ -48,6 +48,10 @@ version = "4.3.0"
 default-features = false
 features = ["parsing", "regex-onig", "assets", "dump-load"]
 
+[dependencies.text-style]
+version = "0.2.0"
+features = ["ansi_term", "syntect"]
+
 [dev-dependencies]
 assert_cmd = "1.0.1"
 insta = "0.16.1"

@@ -35,12 +35,8 @@ impl utils::ManRenderer for RichTextRenderer {
 
     fn print_title(&mut self, left: &str, middle: &str, right: &str) -> io::Result<()> {
         let title = super::format_title(self.line_length, left, middle, right);
-        writeln!(
-            io::stdout(),
-            "{}",
-            ansi_term::Style::new().bold().paint(title)
-        )?;
-        writeln!(io::stdout())
+        render(text_style::StyledStr::plain(&title).bold())?;
+        writeln!(io::stdout(), "\n")
     }
 
     fn print_text(&mut self, indent: u8, s: &doc::Text) -> io::Result<()> {
@@ -53,11 +49,14 @@ impl utils::ManRenderer for RichTextRenderer {
         let lines = html2text::from_read_rich(s.html.as_bytes(), self.line_length - indent);
         for line in lines {
             write!(io::stdout(), "{}", " ".repeat(indent))?;
-            for element in line.iter() {
-                if let text_renderer::TaggedLineElement::Str(ts) = element {
-                    write!(io::stdout(), "{}", style_rich_string(ts))?;
-                }
-            }
+            render_iter(
+                line.iter()
+                    .filter_map(|tle| match tle {
+                        text_renderer::TaggedLineElement::Str(ts) => Some(ts),
+                        _ => None,
+                    })
+                    .map(style_rich_string),
+            )?;
             writeln!(io::stdout())?;
         }
         Ok(())
@@ -72,10 +71,11 @@ impl utils::ManRenderer for RichTextRenderer {
             for line in syntect::util::LinesWithEndings::from(code.as_ref()) {
                 let ranges = h.highlight(line, &self.syntax_set);
                 write!(io::stdout(), "{}", " ".repeat(indent))?;
-                for (style, text) in ranges {
-                    let content = style_syntect_string(style, text);
-                    write!(io::stdout(), "{}", content)?;
-                }
+                // We remove the background as we want to use the terminal background
+                render_iter(ranges.iter().map(text_style::StyledStr::from).map(|mut s| {
+                    s.style_mut().bg = None;
+                    s
+                }))?;
             }
             writeln!(io::stdout())?;
         } else {
@@ -88,8 +88,9 @@ impl utils::ManRenderer for RichTextRenderer {
     }
 
     fn print_heading(&mut self, indent: u8, s: &str) -> io::Result<()> {
-        let text = ansi_term::Style::new().bold().paint(s);
-        writeln!(io::stdout(), "{}{}", " ".repeat(usize::from(indent)), text)
+        write!(io::stdout(), "{}", " ".repeat(usize::from(indent)))?;
+        render(text_style::StyledStr::plain(s).bold())?;
+        writeln!(io::stdout())
     }
 
     fn println(&mut self) -> io::Result<()> {
@@ -97,54 +98,37 @@ impl utils::ManRenderer for RichTextRenderer {
     }
 }
 
-pub fn style_syntect_string(
-    style: syntect::highlighting::Style,
-    s: &str,
-) -> ansi_term::ANSIString<'_> {
-    use syntect::highlighting::FontStyle;
-
-    let mut text_style = ansi_term::Style::new();
-    text_style.foreground = Some(ansi_term::Color::RGB(
-        style.foreground.r,
-        style.foreground.g,
-        style.foreground.b,
-    ));
-    if style.font_style.contains(FontStyle::BOLD) {
-        text_style.is_bold = true;
-    }
-    if style.font_style.contains(FontStyle::UNDERLINE) {
-        text_style.is_underline = true;
-    }
-    if style.font_style.contains(FontStyle::ITALIC) {
-        text_style.is_italic = true;
-    }
-    text_style.paint(s)
-}
-
-pub fn style_rich_string(ts: &RichString) -> ansi_term::ANSIString<'_> {
+pub fn style_rich_string(ts: &RichString) -> text_style::StyledStr<'_> {
     use text_renderer::RichAnnotation;
 
-    let mut style = ansi_term::Style::new();
+    let mut s = text_style::StyledStr::plain(&ts.s);
 
     for annotation in &ts.tag {
         match annotation {
             RichAnnotation::Default => {}
-            RichAnnotation::Link(_) => {
-                style.is_underline = true;
-            }
+            RichAnnotation::Link(_) => s.style_mut().set_bold(true),
             RichAnnotation::Image => {}
-            RichAnnotation::Emphasis => {
-                style.is_italic = true;
-            }
-            RichAnnotation::Strong => {
-                style.is_bold = true;
-            }
-            RichAnnotation::Code => {
-                style.foreground = Some(ansi_term::Color::Yellow);
-            }
+            RichAnnotation::Emphasis => s.style_mut().set_italic(true),
+            RichAnnotation::Strong => s.style_mut().set_bold(true),
+            RichAnnotation::Code => s.style_mut().set_fg(text_style::AnsiColor::Yellow.dark()),
             RichAnnotation::Preformat(_) => {}
         }
     }
 
-    style.paint(&ts.s)
+    s
+}
+
+fn render<'a, S>(s: S) -> io::Result<()>
+where
+    S: Into<text_style::StyledStr<'a>>,
+{
+    text_style::ansi_term::render(io::stdout(), s)
+}
+
+fn render_iter<'a, I, S>(i: I) -> io::Result<()>
+where
+    I: IntoIterator<Item = S>,
+    S: Into<text_style::StyledStr<'a>>,
+{
+    text_style::ansi_term::render_iter(io::stdout(), i)
 }
