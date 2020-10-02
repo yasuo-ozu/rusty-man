@@ -16,8 +16,9 @@ license = "MIT"
 exclude = [".builds/*", "tests/html/*", "tests/snapshots/*"]
 
 [dependencies]
+ansi_term = "0.12.1"
 anyhow = "1.0.31"
-crossterm = "0.17.7"
+atty = "0.2.14"
 html2text = "0.1.12"
 kuchiki = "0.8.0"
 log = "0.4.11"
@@ -26,6 +27,7 @@ merge = "0.1.0"
 pager = "0.15.0"
 serde_json = "1.0.56"
 serde_tuple = "0.5.0"
+terminal_size = "0.1.13"
 toml = "0.5.6"
 xdg = "2.2.0"
 

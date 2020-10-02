@@ -200,11 +200,14 @@ fn select_item(
     items: &[index::IndexItem],
     name: &doc::Name,
 ) -> anyhow::Result<Option<index::IndexItem>> {
-    use crossterm::tty::IsTty;
     use std::io::Write;
 
     // If we are not on a TTY, we can’t ask the user to select an item --> abort
-    anyhow::ensure!(io::stdin().is_tty(), "Found multiple matches for {}", name);
+    anyhow::ensure!(
+        atty::is(atty::Stream::Stdin),
+        "Found multiple matches for {}",
+        name
+    );
 
     println!("Found mulitple matches for {} – select one of:", name);
     println!();

@@ -32,7 +32,8 @@ impl utils::ManRenderer for PlainTextRenderer {
     type Error = io::Error;
 
     fn print_title(&mut self, left: &str, middle: &str, right: &str) -> io::Result<()> {
-        super::print_title(self.line_length, left, middle, right)?;
+        let title = super::format_title(self.line_length, left, middle, right);
+        writeln!(io::stdout(), "{}", title)?;
         writeln!(io::stdout())
     }
 

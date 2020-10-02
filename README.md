@@ -60,9 +60,9 @@ the project, or use `cargo install`.  See the [`INSTALL.md`][] file for more
 information.  rusty-man is also available as a package for these distributions:
 - Arch Linux: [`rusty-man`][pkg-aur] in the Arch User Repository
 
-rusty-man should run on all platforms supported by [`crossterm`][].  If you
-have trouble running rusty-man on your platform or if you want to help porting
-rusty-man to other platforms, please let me know.
+rusty-man should run on all platforms, but the `rich` viewer is only available
+for ANSI terminals.  If you have trouble running rusty-man on your platform or
+if you want to help porting rusty-man to other platforms, please let me know.
 
 ## Integrations
 

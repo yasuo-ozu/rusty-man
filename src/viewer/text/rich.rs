@@ -34,9 +34,13 @@ impl utils::ManRenderer for RichTextRenderer {
     type Error = io::Error;
 
     fn print_title(&mut self, left: &str, middle: &str, right: &str) -> io::Result<()> {
-        write!(io::stdout(), "{}", crossterm::style::Attribute::Bold)?;
-        super::print_title(self.line_length, left, middle, right)?;
-        writeln!(io::stdout(), "{}", crossterm::style::Attribute::Reset)
+        let title = super::format_title(self.line_length, left, middle, right);
+        writeln!(
+            io::stdout(),
+            "{}",
+            ansi_term::Style::new().bold().paint(title)
+        )?;
+        writeln!(io::stdout())
     }
 
     fn print_text(&mut self, indent: u8, s: &doc::Text) -> io::Result<()> {
@@ -84,10 +88,8 @@ impl utils::ManRenderer for RichTextRenderer {
     }
 
     fn print_heading(&mut self, indent: u8, s: &str) -> io::Result<()> {
-        use crossterm::style::Attribute;
-        let mut text = crossterm::style::style(s);
-        text = text.attribute(Attribute::Bold).attribute(Attribute::Reset);
-        writeln!(io::stdout(), "{}{}", " ".repeat(usize::from(indent)), &text)
+        let text = ansi_term::Style::new().bold().paint(s);
+        writeln!(io::stdout(), "{}{}", " ".repeat(usize::from(indent)), text)
     }
 
     fn println(&mut self) -> io::Result<()> {
@@ -98,50 +100,51 @@ impl utils::ManRenderer for RichTextRenderer {
 pub fn style_syntect_string(
     style: syntect::highlighting::Style,
     s: &str,
-) -> crossterm::style::StyledContent<&str> {
-    use crossterm::style::{Attribute, Color};
+) -> ansi_term::ANSIString<'_> {
     use syntect::highlighting::FontStyle;
 
-    let mut content = crossterm::style::style(s).with(Color::Rgb {
-        r: style.foreground.r,
-        g: style.foreground.g,
-        b: style.foreground.b,
-    });
+    let mut text_style = ansi_term::Style::new();
+    text_style.foreground = Some(ansi_term::Color::RGB(
+        style.foreground.r,
+        style.foreground.g,
+        style.foreground.b,
+    ));
     if style.font_style.contains(FontStyle::BOLD) {
-        // TODO: investigate why NoBold does not work
-        content = content
-            .attribute(Attribute::Bold)
-            .attribute(Attribute::Reset);
+        text_style.is_bold = true;
     }
     if style.font_style.contains(FontStyle::UNDERLINE) {
-        content = content.attribute(Attribute::Underlined);
+        text_style.is_underline = true;
     }
     if style.font_style.contains(FontStyle::ITALIC) {
-        content = content.attribute(Attribute::Italic);
+        text_style.is_italic = true;
     }
-    content
+    text_style.paint(s)
 }
 
-pub fn style_rich_string(ts: &RichString) -> crossterm::style::StyledContent<&str> {
-    use crossterm::style::{Attribute, Color};
+pub fn style_rich_string(ts: &RichString) -> ansi_term::ANSIString<'_> {
     use text_renderer::RichAnnotation;
 
-    let mut content = crossterm::style::style(ts.s.as_ref());
+    let mut style = ansi_term::Style::new();
 
     for annotation in &ts.tag {
-        content = match annotation {
-            RichAnnotation::Default => content,
-            RichAnnotation::Link(_) => content.attribute(Attribute::Underlined),
-            RichAnnotation::Image => content,
-            RichAnnotation::Emphasis => content.attribute(Attribute::Italic),
-            // TODO: investigate why NoBold does not work
-            RichAnnotation::Strong => content
-                .attribute(Attribute::Bold)
-                .attribute(Attribute::Reset),
-            RichAnnotation::Code => content.with(Color::Yellow),
-            RichAnnotation::Preformat(_) => content,
-        };
+        match annotation {
+            RichAnnotation::Default => {}
+            RichAnnotation::Link(_) => {
+                style.is_underline = true;
+            }
+            RichAnnotation::Image => {}
+            RichAnnotation::Emphasis => {
+                style.is_italic = true;
+            }
+            RichAnnotation::Strong => {
+                style.is_bold = true;
+            }
+            RichAnnotation::Code => {
+                style.foreground = Some(ansi_term::Color::Yellow);
+            }
+            RichAnnotation::Preformat(_) => {}
+        }
     }
 
-    content
+    style.paint(&ts.s)
 }

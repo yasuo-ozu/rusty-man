@@ -70,10 +70,10 @@ fn ignore_pipe_error(error: io::Error) -> io::Result<()> {
     }
 }
 
-pub fn print_title(line_length: usize, left: &str, middle: &str, right: &str) -> io::Result<()> {
-    use io::Write;
+pub fn format_title(line_length: usize, left: &str, middle: &str, right: &str) -> String {
+    let mut s = String::with_capacity(line_length);
 
-    write!(io::stdout(), "{}", left)?;
+    s.push_str(left);
 
     let mut idx = left.len();
     let middle_idx = line_length / 2;
@@ -84,7 +84,8 @@ pub fn print_title(line_length: usize, left: &str, middle: &str, right: &str) ->
     } else {
         middle_idx - offset - idx
     };
-    write!(io::stdout(), "{}{}", " ".repeat(spacing), middle)?;
+    s.push_str(&" ".repeat(spacing));
+    s.push_str(middle);
     idx += middle.len() + spacing;
 
     let end_idx = line_length;
@@ -94,5 +95,8 @@ pub fn print_title(line_length: usize, left: &str, middle: &str, right: &str) ->
     } else {
         end_idx - offset - idx
     };
-    writeln!(io::stdout(), "{}{}", " ".repeat(spacing), right)
+    s.push_str(&" ".repeat(spacing));
+    s.push_str(right);
+
+    s
 }

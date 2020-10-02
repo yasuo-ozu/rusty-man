@@ -5,7 +5,6 @@ mod text;
 mod utils;
 
 use std::fmt;
-use std::io;
 
 use crate::args;
 use crate::doc;
@@ -31,9 +30,7 @@ pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
 }
 
 pub fn get_default() -> Box<dyn Viewer> {
-    use crossterm::tty::IsTty;
-
-    let text_mode = if io::stdout().is_tty() {
+    let text_mode = if atty::is(atty::Stream::Stdout) {
         text::TextMode::Rich
     } else {
         text::TextMode::Plain

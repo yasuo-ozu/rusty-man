@@ -113,8 +113,8 @@ fn print_heading<M: ManRenderer + ?Sized>(
 pub fn get_line_length(args: &args::ViewerArgs) -> usize {
     if let Some(width) = args.width {
         width
-    } else if let Ok((cols, _)) = crossterm::terminal::size() {
-        cmp::min(cols.into(), args.max_width.unwrap_or(100))
+    } else if let Some((terminal_size::Width(width), _)) = terminal_size::terminal_size() {
+        cmp::min(width.into(), args.max_width.unwrap_or(100))
     } else {
         args.max_width.unwrap_or(100)
     }
