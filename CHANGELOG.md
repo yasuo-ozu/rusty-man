@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 - Use the `merge` crate to merge the command-line arguments and the settings in
   the configuration file.
   - Add `merge` dependency in version 0.1.0.
+- Add syntax highlighting for code snippets in the doc comments.
 
 ## v0.3.0 (2020-09-11)
 
