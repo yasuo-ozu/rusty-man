@@ -8,6 +8,69 @@ use anyhow::Context as _;
 use crate::args;
 use crate::doc;
 
+/// A helper struct for syntax highlighting using syntect.
+#[derive(Clone, Debug)]
+pub struct Highlighter {
+    pub syntax_set: syntect::parsing::SyntaxSet,
+    pub theme: syntect::highlighting::Theme,
+}
+
+impl Highlighter {
+    pub fn new(args: &args::ViewerArgs) -> anyhow::Result<Highlighter> {
+        Ok(Highlighter {
+            syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
+            theme: get_syntect_theme(args)?,
+        })
+    }
+
+    pub fn highlight<'a, 's>(
+        &'a self,
+        s: &'s str,
+    ) -> HighlightedLines<'s, 'a, 'a, syntect::util::LinesWithEndings<'s>> {
+        HighlightedLines::new(
+            syntect::util::LinesWithEndings::from(s),
+            self.get_highlight_lines("rs"),
+            &self.syntax_set,
+        )
+    }
+
+    pub fn get_highlight_lines(&self, syntax: &str) -> syntect::easy::HighlightLines<'_> {
+        let syntax = self.syntax_set.find_syntax_by_extension(syntax).unwrap();
+        syntect::easy::HighlightLines::new(syntax, &self.theme)
+    }
+}
+
+/// An iterator over lines highlighted using syntect.
+pub struct HighlightedLines<'s, 'ss, 't, I: Iterator<Item = &'s str>> {
+    iter: I,
+    highlighter: syntect::easy::HighlightLines<'t>,
+    syntax_set: &'ss syntect::parsing::SyntaxSet,
+}
+
+impl<'s, 'ss, 't, I: Iterator<Item = &'s str>> HighlightedLines<'s, 'ss, 't, I> {
+    fn new(
+        iter: I,
+        highlighter: syntect::easy::HighlightLines<'t>,
+        syntax_set: &'ss syntect::parsing::SyntaxSet,
+    ) -> HighlightedLines<'s, 'ss, 't, I> {
+        HighlightedLines {
+            iter,
+            highlighter,
+            syntax_set,
+        }
+    }
+}
+
+impl<'s, 'ss, 't, I: Iterator<Item = &'s str>> Iterator for HighlightedLines<'s, 'ss, 't, I> {
+    type Item = Vec<(syntect::highlighting::Style, &'s str)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()
+            .map(|s| self.highlighter.highlight(s, &self.syntax_set))
+    }
+}
+
 /// A trait for viewer implementations that display the documentation in a man-like style.
 pub trait ManRenderer {
     type Error: std::error::Error + Sized + Send;
@@ -120,7 +183,15 @@ pub fn get_line_length(args: &args::ViewerArgs) -> usize {
     }
 }
 
-pub fn get_syntect_theme(args: &args::ViewerArgs) -> anyhow::Result<syntect::highlighting::Theme> {
+pub fn get_highlighter(args: &args::ViewerArgs) -> anyhow::Result<Option<Highlighter>> {
+    if args.no_syntax_highlight {
+        Ok(None)
+    } else {
+        Highlighter::new(&args).map(Some)
+    }
+}
+
+fn get_syntect_theme(args: &args::ViewerArgs) -> anyhow::Result<syntect::highlighting::Theme> {
     let mut theme_set = syntect::highlighting::ThemeSet::load_defaults();
     let theme_name = args.theme.as_deref().unwrap_or("base16-eighties.dark");
     theme_set

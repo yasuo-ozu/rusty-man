@@ -14,18 +14,14 @@ type RichString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>
 #[derive(Debug)]
 pub struct RichTextRenderer {
     line_length: usize,
-    highlight: bool,
-    syntax_set: syntect::parsing::SyntaxSet,
-    theme: syntect::highlighting::Theme,
+    highlighter: Option<utils::Highlighter>,
 }
 
 impl RichTextRenderer {
     pub fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
         Ok(Self {
             line_length: utils::get_line_length(&args),
-            highlight: !args.no_syntax_highlight,
-            syntax_set: syntect::parsing::SyntaxSet::load_defaults_newlines(),
-            theme: utils::get_syntect_theme(&args)?,
+            highlighter: utils::get_highlighter(&args)?,
         })
     }
 }
@@ -64,15 +60,11 @@ impl utils::ManRenderer for RichTextRenderer {
 
     fn print_code(&mut self, indent: u8, code: &doc::Code) -> io::Result<()> {
         let indent = usize::from(indent);
-        if self.highlight {
-            let syntax = self.syntax_set.find_syntax_by_extension("rs").unwrap();
-            let mut h = syntect::easy::HighlightLines::new(syntax, &self.theme);
-
-            for line in syntect::util::LinesWithEndings::from(code.as_ref()) {
-                let ranges = h.highlight(line, &self.syntax_set);
+        if let Some(highlighter) = &self.highlighter {
+            for line in highlighter.highlight(code.as_ref()) {
                 write!(io::stdout(), "{}", " ".repeat(indent))?;
                 // We remove the background as we want to use the terminal background
-                render_iter(ranges.iter().map(text_style::StyledStr::from).map(|mut s| {
+                render_iter(line.iter().map(text_style::StyledStr::from).map(|mut s| {
                     s.style_mut().bg = None;
                     s
                 }))?;
