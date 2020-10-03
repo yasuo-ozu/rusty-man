@@ -123,6 +123,14 @@ impl text_renderer::TextDecorator for Decorator {
         "**".to_owned()
     }
 
+    fn decorate_strikeout_start(&mut self) -> (String, Self::Annotation) {
+        ("~".to_owned(), ())
+    }
+
+    fn decorate_strikeout_end(&mut self) -> String {
+        "~".to_owned()
+    }
+
     fn decorate_code_start(&mut self) -> (String, Self::Annotation) {
         ("`".to_owned(), ())
     }

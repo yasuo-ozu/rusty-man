@@ -101,6 +101,7 @@ pub fn style_rich_string(ts: &RichString) -> text_style::StyledStr<'_> {
             RichAnnotation::Link(_) => s.style_mut().set_bold(true),
             RichAnnotation::Image => {}
             RichAnnotation::Emphasis => s.style_mut().set_italic(true),
+            RichAnnotation::Strikeout => {}
             RichAnnotation::Strong => s.style_mut().set_bold(true),
             RichAnnotation::Code => s.style_mut().set_fg(text_style::AnsiColor::Yellow.dark()),
             RichAnnotation::Preformat(_) => {}
