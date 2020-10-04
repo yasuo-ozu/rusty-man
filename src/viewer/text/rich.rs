@@ -9,9 +9,6 @@ use crate::args;
 use crate::doc;
 use crate::viewer::utils;
 
-type RichString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>>;
-type RichLine = text_renderer::TaggedLine<Vec<text_renderer::RichAnnotation>>;
-
 #[derive(Debug)]
 pub struct RichTextRenderer {
     line_length: usize,
@@ -24,41 +21,6 @@ impl RichTextRenderer {
             line_length: utils::get_line_length(&args),
             highlighter: utils::get_highlighter(&args)?,
         })
-    }
-
-    fn prepare_html<'s>(&self, html: &'s [RichLine]) -> Vec<Vec<text_style::StyledStr<'s>>> {
-        let mut lines = Vec::new();
-        let mut highlight_lines = None;
-        for line in html {
-            let mut styled_strings = Vec::new();
-
-            for ts in line.iter().filter_map(|tle| match tle {
-                text_renderer::TaggedLineElement::Str(ts) => Some(ts),
-                _ => None,
-            }) {
-                if let Some(highlighter) = &self.highlighter {
-                    if is_pre(ts) {
-                        let h = highlight_lines
-                            .get_or_insert_with(|| highlighter.get_highlight_lines("rs"));
-                        let highlighted_strings = h.highlight(&ts.s, &highlighter.syntax_set);
-                        styled_strings.extend(
-                            highlighted_strings
-                                .iter()
-                                .map(text_style::StyledStr::from)
-                                .map(reset_background),
-                        );
-                    } else {
-                        highlight_lines = None;
-                        styled_strings.push(style_rich_string(ts));
-                    }
-                } else {
-                    styled_strings.push(style_rich_string(ts));
-                }
-            }
-
-            lines.push(styled_strings);
-        }
-        lines
     }
 }
 
@@ -79,9 +41,12 @@ impl utils::ManRenderer for RichTextRenderer {
             indent
         };
         let lines = html2text::from_read_rich(s.html.as_bytes(), self.line_length - indent);
-        for line in self.prepare_html(&lines) {
+        for line in utils::highlight_html(&lines, self.highlighter.as_ref()) {
             write!(io::stdout(), "{}", " ".repeat(indent))?;
-            render_iter(line)?;
+            render_iter(line.into_iter().map(|s| match s {
+                utils::HighlightedHtmlElement::RichString(s) => style_rich_string(s),
+                utils::HighlightedHtmlElement::StyledString(s) => utils::reset_background(s),
+            }))?;
             writeln!(io::stdout())?;
         }
         Ok(())
@@ -92,11 +57,10 @@ impl utils::ManRenderer for RichTextRenderer {
         if let Some(highlighter) = &self.highlighter {
             for line in highlighter.highlight(code.as_ref()) {
                 write!(io::stdout(), "{}", " ".repeat(indent))?;
-                // We remove the background as we want to use the terminal background
                 render_iter(
                     line.iter()
                         .map(text_style::StyledStr::from)
-                        .map(reset_background),
+                        .map(utils::reset_background),
                 )?;
             }
             writeln!(io::stdout())?;
@@ -120,19 +84,7 @@ impl utils::ManRenderer for RichTextRenderer {
     }
 }
 
-fn reset_background(mut s: text_style::StyledStr<'_>) -> text_style::StyledStr<'_> {
-    s.style_mut().bg = None;
-    s
-}
-
-fn is_pre(ts: &RichString) -> bool {
-    ts.tag.iter().any(|annotation| match annotation {
-        text_renderer::RichAnnotation::Preformat(_) => true,
-        _ => false,
-    })
-}
-
-fn style_rich_string(ts: &RichString) -> text_style::StyledStr<'_> {
+fn style_rich_string(ts: &utils::RichString) -> text_style::StyledStr<'_> {
     use text_renderer::RichAnnotation;
 
     let mut s = text_style::StyledStr::plain(&ts.s);

@@ -4,9 +4,13 @@
 use std::cmp;
 
 use anyhow::Context as _;
+use html2text::render::text_renderer;
 
 use crate::args;
 use crate::doc;
+
+pub type RichString = text_renderer::TaggedString<Vec<text_renderer::RichAnnotation>>;
+pub type RichLine = text_renderer::TaggedLine<Vec<text_renderer::RichAnnotation>>;
 
 /// A helper struct for syntax highlighting using syntect.
 #[derive(Clone, Debug)]
@@ -69,6 +73,114 @@ impl<'s, 'ss, 't, I: Iterator<Item = &'s str>> Iterator for HighlightedLines<'s,
             .next()
             .map(|s| self.highlighter.highlight(s, &self.syntax_set))
     }
+}
+
+pub enum HighlightedHtmlElement<'s> {
+    RichString(&'s RichString),
+    StyledString(text_style::StyledStr<'s>),
+}
+
+impl<'s> From<&'s RichString> for HighlightedHtmlElement<'s> {
+    fn from(s: &'s RichString) -> HighlightedHtmlElement<'s> {
+        HighlightedHtmlElement::RichString(s)
+    }
+}
+
+impl<'s> From<text_style::StyledStr<'s>> for HighlightedHtmlElement<'s> {
+    fn from(s: text_style::StyledStr<'s>) -> HighlightedHtmlElement<'s> {
+        HighlightedHtmlElement::StyledString(s)
+    }
+}
+
+pub struct HighlightedHtml<'h, 's, I: Iterator<Item = &'s RichLine>> {
+    iter: I,
+    highlighter: Option<&'h Highlighter>,
+    highlight_lines: Option<syntect::easy::HighlightLines<'h>>,
+}
+
+impl<'h, 's, I: Iterator<Item = &'s RichLine>> HighlightedHtml<'h, 's, I> {
+    fn new(iter: I, highlighter: Option<&'h Highlighter>) -> HighlightedHtml<'h, 's, I> {
+        HighlightedHtml {
+            iter,
+            highlighter,
+            highlight_lines: None,
+        }
+    }
+
+    fn get_highlighted_line(
+        &mut self,
+        highlighter: &'h Highlighter,
+        line: &'s RichLine,
+    ) -> Vec<HighlightedHtmlElement<'s>> {
+        let mut elements = Vec::new();
+
+        for ts in line.iter().filter_map(|tle| match tle {
+            text_renderer::TaggedLineElement::Str(ts) => Some(ts),
+            _ => None,
+        }) {
+            if is_pre(ts) {
+                let h = self
+                    .highlight_lines
+                    .get_or_insert_with(|| highlighter.get_highlight_lines("rs"));
+
+                // TODO: syntect expects a newline
+
+                let strings = h.highlight(&ts.s, &highlighter.syntax_set);
+                elements.extend(
+                    strings
+                        .iter()
+                        .map(text_style::StyledStr::from)
+                        .map(HighlightedHtmlElement::from),
+                );
+            } else {
+                self.highlight_lines = None;
+                elements.push(ts.into());
+            }
+        }
+
+        elements
+    }
+}
+
+impl<'h, 's, I: Iterator<Item = &'s RichLine>> Iterator for HighlightedHtml<'h, 's, I> {
+    type Item = Vec<HighlightedHtmlElement<'s>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(line) = self.iter.next() {
+            let elements = if let Some(highlighter) = self.highlighter {
+                self.get_highlighted_line(highlighter, line)
+            } else {
+                line.iter()
+                    .filter_map(|tle| match tle {
+                        text_renderer::TaggedLineElement::Str(ts) => Some(ts),
+                        _ => None,
+                    })
+                    .map(From::from)
+                    .collect()
+            };
+            Some(elements)
+        } else {
+            None
+        }
+    }
+}
+
+pub fn highlight_html<'h, 's, I, Iter>(
+    iter: I,
+    highlighter: Option<&'h Highlighter>,
+) -> HighlightedHtml<'h, 's, Iter>
+where
+    I: IntoIterator<Item = Iter::Item, IntoIter = Iter>,
+    Iter: Iterator<Item = &'s RichLine>,
+{
+    HighlightedHtml::new(iter.into_iter(), highlighter)
+}
+
+fn is_pre(ts: &RichString) -> bool {
+    ts.tag.iter().any(|annotation| match annotation {
+        text_renderer::RichAnnotation::Preformat(_) => true,
+        _ => false,
+    })
 }
 
 /// A trait for viewer implementations that display the documentation in a man-like style.
@@ -189,6 +301,11 @@ pub fn get_highlighter(args: &args::ViewerArgs) -> anyhow::Result<Option<Highlig
     } else {
         Highlighter::new(&args).map(Some)
     }
+}
+
+pub fn reset_background(mut s: text_style::StyledStr<'_>) -> text_style::StyledStr<'_> {
+    s.style_mut().bg = None;
+    s
 }
 
 fn get_syntect_theme(args: &args::ViewerArgs) -> anyhow::Result<syntect::highlighting::Theme> {
