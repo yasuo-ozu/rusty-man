@@ -94,7 +94,7 @@ fn style_rich_string(ts: &utils::RichString) -> text_style::StyledStr<'_> {
     for annotation in &ts.tag {
         match annotation {
             RichAnnotation::Default => {}
-            RichAnnotation::Link(_) => s.style_mut().set_bold(true),
+            RichAnnotation::Link(_) => s.style_mut().set_underline(true),
             RichAnnotation::Image => {}
             RichAnnotation::Emphasis => s.style_mut().set_italic(true),
             RichAnnotation::Strikeout => {}
