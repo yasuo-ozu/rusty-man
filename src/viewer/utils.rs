@@ -285,6 +285,77 @@ fn print_heading<M: ManRenderer + ?Sized>(
     viewer.print_heading(indent, text.as_ref())
 }
 
+/// A decorator that generates rich text.
+#[derive(Clone)]
+pub struct RichDecorator;
+
+impl text_renderer::TextDecorator for RichDecorator {
+    type Annotation = text_renderer::RichAnnotation;
+
+    fn decorate_link_start(&mut self, url: &str) -> (String, Self::Annotation) {
+        (
+            "".to_string(),
+            text_renderer::RichAnnotation::Link(url.to_string()),
+        )
+    }
+
+    fn decorate_link_end(&mut self) -> String {
+        "".to_string()
+    }
+
+    fn decorate_em_start(&mut self) -> (String, Self::Annotation) {
+        ("".to_string(), text_renderer::RichAnnotation::Emphasis)
+    }
+
+    fn decorate_em_end(&mut self) -> String {
+        "".to_string()
+    }
+
+    fn decorate_strong_start(&mut self) -> (String, Self::Annotation) {
+        ("".to_string(), text_renderer::RichAnnotation::Strong)
+    }
+
+    fn decorate_strong_end(&mut self) -> String {
+        "".to_string()
+    }
+
+    fn decorate_strikeout_start(&mut self) -> (String, Self::Annotation) {
+        ("".to_string(), text_renderer::RichAnnotation::Strikeout)
+    }
+
+    fn decorate_strikeout_end(&mut self) -> String {
+        "".to_string()
+    }
+
+    fn decorate_code_start(&mut self) -> (String, Self::Annotation) {
+        ("".to_string(), text_renderer::RichAnnotation::Code)
+    }
+
+    fn decorate_code_end(&mut self) -> String {
+        "".to_string()
+    }
+
+    fn decorate_preformat_first(&mut self) -> Self::Annotation {
+        text_renderer::RichAnnotation::Preformat(false)
+    }
+
+    fn decorate_preformat_cont(&mut self) -> Self::Annotation {
+        text_renderer::RichAnnotation::Preformat(true)
+    }
+
+    fn decorate_image(&mut self, title: &str) -> (String, Self::Annotation) {
+        (title.to_string(), text_renderer::RichAnnotation::Image)
+    }
+
+    fn finalise(self) -> Vec<text_renderer::TaggedLine<text_renderer::RichAnnotation>> {
+        Vec::new()
+    }
+
+    fn make_subblock_decorator(&self) -> Self {
+        RichDecorator
+    }
+}
+
 pub fn get_line_length(args: &args::ViewerArgs) -> usize {
     if let Some(width) = args.width {
         width
