@@ -40,8 +40,9 @@ impl utils::ManRenderer for RichTextRenderer {
         } else {
             indent
         };
+        let decorator = utils::RichDecorator::new(super::list_link);
         let lines = html2text::parse(s.html.as_bytes())
-            .render(self.line_length - indent, utils::RichDecorator)
+            .render(self.line_length - indent, decorator)
             .into_lines();
         for line in utils::highlight_html(&lines, self.highlighter.as_ref()) {
             write!(io::stdout(), "{}", " ".repeat(indent))?;

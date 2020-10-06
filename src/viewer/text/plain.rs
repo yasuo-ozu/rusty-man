@@ -69,22 +69,13 @@ impl Decorator {
     pub fn new() -> Self {
         Decorator::default()
     }
-
-    fn show_link(&self, url: &str) -> bool {
-        // only show absolute links -- local links are most likely not helpful
-        (url.starts_with("http") || url.starts_with("https")) &&
-            // ignore playground links -- typically, these links are too long to display in a
-            // sensible fasshion
-            !url.starts_with("http://play.rust-lang.org") &&
-            !url.starts_with("https://play.rust-lang.org")
-    }
 }
 
 impl text_renderer::TextDecorator for Decorator {
     type Annotation = ();
 
     fn decorate_link_start(&mut self, url: &str) -> (String, Self::Annotation) {
-        if self.show_link(url) {
+        if super::list_link(url) {
             self.ignore_next_link = false;
             self.links.push(url.to_string());
             ("[".to_owned(), ())

@@ -70,6 +70,18 @@ fn ignore_pipe_error(error: io::Error) -> io::Result<()> {
     }
 }
 
+/// Decides whether a link to the given URL should be included in the link list that is displayed
+/// at the end of the block.
+///
+/// We only list absolute URLs because relative URLs are not useful in a non-interactive viewer.
+/// Also, we skip links to the Rust playground because they are typically very long and therefore
+/// hard to read and display.
+pub fn list_link(url: &str) -> bool {
+    (url.starts_with("http") || url.starts_with("https"))
+        && !url.starts_with("http://play.rust-lang.org")
+        && !url.starts_with("https://play.rust-lang.org")
+}
+
 pub fn format_title(line_length: usize, left: &str, middle: &str, right: &str) -> String {
     let mut s = String::with_capacity(line_length);
 
