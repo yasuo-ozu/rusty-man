@@ -79,6 +79,14 @@ impl HtmlView {
         self.rendered_html = Some(rendered_html);
         size
     }
+
+    /// Returns the current focus and the list of links if both are available.
+    fn focus_and_links(&self) -> Option<(usize, &[Link])> {
+        match (self.focus, self.rendered_html.as_ref().map(|h| &h.links)) {
+            (Some(focus), Some(links)) => Some((focus, links)),
+            _ => None,
+        }
+    }
 }
 
 impl cursive::View for HtmlView {
@@ -137,20 +145,14 @@ impl cursive::View for HtmlView {
     fn on_event(&mut self, event: event::Event) -> event::EventResult {
         use event::{Event, EventResult, Key};
 
-        let links = if let Some(rendered_html) = &self.rendered_html {
-            if rendered_html.links.is_empty() {
-                return EventResult::Ignored;
-            } else {
-                &rendered_html.links
-            }
+        let (focus, links) = if let Some(val) = self.focus_and_links() {
+            val
         } else {
             return EventResult::Ignored;
         };
-        let focus = if let Some(focus) = self.focus {
-            focus
-        } else {
+        if links.is_empty() {
             return EventResult::Ignored;
-        };
+        }
 
         match event {
             Event::Key(Key::Left) => {
@@ -218,9 +220,9 @@ impl cursive::View for HtmlView {
     }
 
     fn important_area(&self, _: cursive::XY<usize>) -> cursive::Rect {
-        if let Some((focus, rendered_html)) = self.focus.zip(self.rendered_html.as_ref()) {
-            let origin = rendered_html.links[focus].position;
-            cursive::Rect::from_size(origin, (rendered_html.links[focus].width, 1))
+        if let Some((focus, links)) = self.focus_and_links() {
+            let origin = links[focus].position;
+            cursive::Rect::from_size(origin, (links[focus].width, 1))
         } else {
             cursive::Rect::from((0, 0))
         }
