@@ -14,10 +14,10 @@ pub struct PlainTextRenderer {
     line_length: usize,
 }
 
+#[derive(Clone, Debug, Default)]
 struct Decorator {
     links: Vec<String>,
     ignore_next_link: bool,
-    show_links: bool,
 }
 
 impl PlainTextRenderer {
@@ -41,7 +41,7 @@ impl utils::ManRenderer for PlainTextRenderer {
         let lines = html2text::from_read_with_decorator(
             s.html.as_bytes(),
             self.line_length - usize::from(indent),
-            Decorator::new(true),
+            Decorator::new(),
         );
         for line in lines.trim().split('\n') {
             writeln!(io::stdout(), "{}{}", " ".repeat(indent.into()), line)?;
@@ -66,18 +66,13 @@ impl utils::ManRenderer for PlainTextRenderer {
 }
 
 impl Decorator {
-    pub fn new(show_links: bool) -> Self {
-        Self {
-            links: Vec::new(),
-            ignore_next_link: false,
-            show_links,
-        }
+    pub fn new() -> Self {
+        Decorator::default()
     }
 
     fn show_link(&self, url: &str) -> bool {
-        self.show_links &&
-            // only show absolute links -- local links are most likely not helpful
-            (url.starts_with("http") || url.starts_with("https")) &&
+        // only show absolute links -- local links are most likely not helpful
+        (url.starts_with("http") || url.starts_with("https")) &&
             // ignore playground links -- typically, these links are too long to display in a
             // sensible fasshion
             !url.starts_with("http://play.rust-lang.org") &&
@@ -157,6 +152,6 @@ impl text_renderer::TextDecorator for Decorator {
     }
 
     fn make_subblock_decorator(&self) -> Self {
-        Decorator::new(self.show_links)
+        Decorator::new()
     }
 }
