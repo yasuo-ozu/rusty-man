@@ -76,7 +76,12 @@ impl utils::ManRenderer for RichTextRenderer {
         Ok(())
     }
 
-    fn print_heading(&mut self, indent: u8, s: &str) -> io::Result<()> {
+    fn print_heading(
+        &mut self,
+        indent: u8,
+        s: &str,
+        _link: Option<utils::DocLink>,
+    ) -> io::Result<()> {
         write!(io::stdout(), "{}", " ".repeat(usize::from(indent)))?;
         render(text_style::StyledStr::plain(s).bold())?;
         writeln!(io::stdout())

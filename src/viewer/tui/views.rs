@@ -346,6 +346,54 @@ fn get_rich_style(annotation: &text_renderer::RichAnnotation) -> Option<theme::S
     }
 }
 
+pub struct LinkView {
+    text: markup::StyledString,
+    cb: event::Callback,
+    is_focused: bool,
+}
+
+impl LinkView {
+    pub fn new<F>(text: impl Into<markup::StyledString>, cb: F) -> LinkView
+    where
+        F: Fn(&mut cursive::Cursive) + 'static,
+    {
+        LinkView {
+            text: text.into(),
+            cb: event::Callback::from_fn(cb),
+            is_focused: false,
+        }
+    }
+}
+
+impl cursive::View for LinkView {
+    fn draw(&self, printer: &cursive::Printer) {
+        let mut style = theme::Style::from(theme::Effect::Underline);
+        if self.is_focused && printer.focused {
+            style = style.combine(theme::PaletteColor::Highlight);
+        };
+        printer.with_style(style, |printer| {
+            printer.print_styled((0, 0), (&self.text).into())
+        });
+    }
+
+    fn required_size(&mut self, _constraint: cursive::XY<usize>) -> cursive::XY<usize> {
+        (self.text.width(), 1).into()
+    }
+
+    fn take_focus(&mut self, _direction: cursive::direction::Direction) -> bool {
+        self.is_focused = true;
+        true
+    }
+
+    fn on_event(&mut self, event: event::Event) -> event::EventResult {
+        if event == event::Event::Key(event::Key::Enter) {
+            event::EventResult::Consumed(Some(self.cb.clone()))
+        } else {
+            event::EventResult::Ignored
+        }
+    }
+}
+
 pub struct CodeView {
     lines: Vec<markup::StyledString>,
     width: usize,

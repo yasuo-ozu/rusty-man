@@ -183,12 +183,23 @@ fn is_pre(ts: &RichString) -> bool {
     })
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct DocLink {
+    pub name: doc::Fqn,
+    pub ty: Option<doc::ItemType>,
+}
+
 /// A trait for viewer implementations that display the documentation in a man-like style.
 pub trait ManRenderer {
     type Error: std::error::Error + Sized + Send;
 
     fn print_title(&mut self, left: &str, center: &str, right: &str) -> Result<(), Self::Error>;
-    fn print_heading(&mut self, indent: u8, text: &str) -> Result<(), Self::Error>;
+    fn print_heading(
+        &mut self,
+        indent: u8,
+        text: &str,
+        link: Option<DocLink>,
+    ) -> Result<(), Self::Error>;
     fn print_code(&mut self, indent: u8, code: &doc::Code) -> Result<(), Self::Error>;
     fn print_text(&mut self, indent: u8, text: &doc::Text) -> Result<(), Self::Error>;
     fn println(&mut self) -> Result<(), Self::Error>;
@@ -197,28 +208,36 @@ pub trait ManRenderer {
         print_title(self, doc)?;
 
         if let Some(text) = &doc.definition {
-            print_heading(self, 1, "Synopsis")?;
+            print_heading(self, 1, "Synopsis", None)?;
             self.print_code(6, text)?;
             self.println()?;
         }
 
         if let Some(text) = &doc.description {
-            print_heading(self, 1, "Description")?;
+            print_heading(self, 1, "Description", None)?;
             self.print_text(6, text)?;
             self.println()?;
         }
 
         for (ty, groups) in &doc.groups {
-            print_heading(self, 1, ty.group_name())?;
+            print_heading(self, 1, ty.group_name(), None)?;
 
             for group in groups {
                 if let Some(title) = &group.title {
-                    print_heading(self, 2, title)?;
+                    print_heading(self, 2, title, None)?;
                 }
 
                 for member in &group.members {
+                    let link = if doc::ItemType::Module == doc.ty {
+                        Some(DocLink {
+                            name: member.name.clone(),
+                            ty: Some(*ty),
+                        })
+                    } else {
+                        None
+                    };
                     // TODO: use something link strip_prefix instead of last()
-                    print_heading(self, 3, member.name.last())?;
+                    print_heading(self, 3, member.name.last(), link)?;
                     if let Some(definition) = &member.definition {
                         self.print_code(12, definition)?;
                     }
@@ -244,12 +263,12 @@ pub trait ManRenderer {
         examples: &[doc::Example],
     ) -> Result<(), Self::Error> {
         print_title(self, doc)?;
-        print_heading(self, 1, "Examples")?;
+        print_heading(self, 1, "Examples", None)?;
 
         let n = examples.len();
         for (i, example) in examples.iter().enumerate() {
             if n > 1 {
-                print_heading(self, 2, &format!("Example {} of {}", i + 1, n))?;
+                print_heading(self, 2, &format!("Example {} of {}", i + 1, n), None)?;
             }
             if let Some(description) = &example.description {
                 self.print_text(6, description)?;
@@ -272,6 +291,7 @@ fn print_heading<M: ManRenderer + ?Sized>(
     viewer: &mut M,
     level: u8,
     text: &str,
+    link: Option<DocLink>,
 ) -> Result<(), M::Error> {
     let text = match level {
         1 => std::borrow::Cow::from(text.to_uppercase()),
@@ -282,7 +302,7 @@ fn print_heading<M: ManRenderer + ?Sized>(
         2 => 3,
         _ => 6,
     };
-    viewer.print_heading(indent, text.as_ref())
+    viewer.print_heading(indent, text.as_ref(), link)
 }
 
 /// Link handling mode for the [`RichDecorator`].

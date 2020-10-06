@@ -56,7 +56,12 @@ impl utils::ManRenderer for PlainTextRenderer {
         Ok(())
     }
 
-    fn print_heading(&mut self, indent: u8, s: &str) -> io::Result<()> {
+    fn print_heading(
+        &mut self,
+        indent: u8,
+        s: &str,
+        _link: Option<utils::DocLink>,
+    ) -> io::Result<()> {
         writeln!(io::stdout(), "{}{}", " ".repeat(indent.into()), s)
     }
 

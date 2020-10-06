@@ -8,14 +8,14 @@ use std::convert;
 use anyhow::Context as _;
 use cursive::view::{Resizable as _, Scrollable as _};
 use cursive::views::{Dialog, LinearLayout, PaddedView, Panel, TextView};
-use cursive::{event, theme};
+use cursive::{event, theme, utils::markup};
 
 use crate::args;
 use crate::doc;
 use crate::source;
 use crate::viewer::{self, utils, utils::ManRenderer as _};
 
-use views::{CodeView, HtmlView};
+use views::{CodeView, HtmlView, LinkView};
 
 #[derive(Clone, Debug)]
 pub struct TuiViewer {}
@@ -133,9 +133,25 @@ impl<'s> utils::ManRenderer for TuiManRenderer<'s> {
         Ok(())
     }
 
-    fn print_heading(&mut self, indent: u8, text: &str) -> Result<(), Self::Error> {
-        let heading = TextView::new(text).effect(theme::Effect::Bold);
-        self.layout.add_child(indent_view(indent, heading));
+    fn print_heading(
+        &mut self,
+        indent: u8,
+        text: &str,
+        link: Option<utils::DocLink>,
+    ) -> Result<(), Self::Error> {
+        let text = markup::StyledString::styled(text, theme::Effect::Bold);
+        if let Some(link) = link {
+            // TODO: bold
+            let heading = LinkView::new(text, move |s| {
+                if let Err(err) = open_link(s, link.clone().into()) {
+                    report_error(s, err);
+                }
+            });
+            self.layout.add_child(indent_view(indent, heading));
+        } else {
+            let heading = TextView::new(text);
+            self.layout.add_child(indent_view(indent, heading));
+        }
         Ok(())
     }
 
@@ -264,6 +280,12 @@ fn open_link(s: &mut cursive::Cursive, link: ResolvedLink) -> anyhow::Result<()>
 enum ResolvedLink {
     Doc(Option<doc::ItemType>, doc::Fqn),
     External(String),
+}
+
+impl From<utils::DocLink> for ResolvedLink {
+    fn from(link: utils::DocLink) -> ResolvedLink {
+        ResolvedLink::Doc(link.ty, link.name)
+    }
 }
 
 fn resolve_link(
