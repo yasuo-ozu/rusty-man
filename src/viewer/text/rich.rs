@@ -117,7 +117,7 @@ fn render<'a, S>(s: S) -> io::Result<()>
 where
     S: Into<text_style::StyledStr<'a>>,
 {
-    text_style::ansi_term::render(io::stdout(), s)
+    text_style::termion::render(io::stdout(), s)
 }
 
 fn render_iter<'a, I, S>(i: I) -> io::Result<()>
@@ -125,5 +125,5 @@ where
     I: IntoIterator<Item = S>,
     S: Into<text_style::StyledStr<'a>>,
 {
-    text_style::ansi_term::render_iter(io::stdout(), i)
+    text_style::termion::render_iter(io::stdout(), i)
 }

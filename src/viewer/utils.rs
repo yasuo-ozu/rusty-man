@@ -435,7 +435,7 @@ impl text_renderer::TextDecorator for RichDecorator {
 pub fn get_line_length(args: &args::ViewerArgs) -> usize {
     if let Some(width) = args.width {
         width
-    } else if let Some((terminal_size::Width(width), _)) = terminal_size::terminal_size() {
+    } else if let Ok((width, _)) = termion::terminal_size() {
         cmp::min(width.into(), args.max_width.unwrap_or(100))
     } else {
         args.max_width.unwrap_or(100)

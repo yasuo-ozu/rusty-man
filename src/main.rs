@@ -204,7 +204,7 @@ fn select_item(
 
     // If we are not on a TTY, we can’t ask the user to select an item --> abort
     anyhow::ensure!(
-        atty::is(atty::Stream::Stdin),
+        termion::is_tty(&io::stdin()),
         "Found multiple matches for {}",
         name
     );

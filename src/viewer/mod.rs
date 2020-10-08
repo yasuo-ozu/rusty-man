@@ -6,6 +6,7 @@ mod tui;
 mod utils;
 
 use std::fmt;
+use std::io;
 
 use crate::args;
 use crate::doc;
@@ -39,7 +40,7 @@ pub fn get_viewer(s: &str) -> anyhow::Result<Box<dyn Viewer>> {
 }
 
 pub fn get_default() -> Box<dyn Viewer> {
-    let text_mode = if atty::is(atty::Stream::Stdout) {
+    let text_mode = if termion::is_tty(&io::stdout()) {
         text::TextMode::Rich
     } else {
         text::TextMode::Plain
