@@ -189,11 +189,19 @@ fn indent_view<V>(indent: impl Into<usize>, view: V) -> PaddedView<V> {
     PaddedView::lrtb(indent.into(), 0, 0, 0, view)
 }
 
+fn create_backend() -> anyhow::Result<Box<dyn cursive::backend::Backend>> {
+    let termion =
+        cursive::backends::termion::Backend::init().context("Could not create termion backend")?;
+    let buffered = cursive_buffered_backend::BufferedBackend::new(termion);
+    Ok(Box::new(buffered))
+}
+
 fn create_cursive(
     sources: Vec<Box<dyn source::Source>>,
     args: args::ViewerArgs,
 ) -> anyhow::Result<cursive::Cursive> {
-    let mut cursive = cursive::default();
+    let mut cursive =
+        cursive::Cursive::try_new(create_backend).context("Could not create Cursive instance")?;
 
     cursive.set_user_data(Context::new(sources, args)?);
 

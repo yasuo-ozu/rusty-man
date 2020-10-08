@@ -72,10 +72,10 @@ information.  rusty-man is also available as a package for these distributions:
 - Arch Linux: [`rusty-man`][pkg-aur] in the Arch User Repository
 
 rusty-man is developed for Unix-like systems.  It should run on other platforms
-too, but with some limitations:  The `rich` viewer uses ANSI escape codes,
-which are not supported on older Windows versions.  The `tui` viewer requires
-the ncurses library.  If you have trouble running rusty-man on your platform or
-if you want to help porting rusty-man to other platforms, please let me know.
+too, but with some limitations:  The `rich` and `tui` viewers uses ANSI escape
+codes, which are not supported on older Windows versions.  If you have trouble
+running rusty-man on your platform or if you want to help porting rusty-man to
+other platforms, please let me know.
 
 ## Integrations
 

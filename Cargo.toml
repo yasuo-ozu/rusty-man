@@ -19,7 +19,7 @@ exclude = [".builds/*", "tests/html/*", "tests/snapshots/*"]
 ansi_term = "0.12.1"
 anyhow = "1.0.31"
 atty = "0.2.14"
-cursive = "0.15.0"
+cursive_buffered_backend = "0.4"
 cursive-markup = "0.1"
 html2text = "0.2.1"
 kuchiki = "0.8.0"
@@ -35,6 +35,11 @@ toml = "0.5.6"
 url = "2.1.1"
 webbrowser = "0.5.5"
 xdg = "2.2.0"
+
+[dependencies.cursive]
+version = "0.15"
+default-features = false
+features = ["termion-backend"]
 
 [dependencies.env_logger]
 version = "0.7.1"
