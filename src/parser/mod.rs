@@ -186,6 +186,12 @@ fn node_to_text(node: &kuchiki::NodeRef) -> String {
 }
 
 fn push_node_to_text(s: &mut String, node: &kuchiki::NodeRef) {
+    if node.has_class("notable-traits") {
+        // The notable-traits element lists informations about types in a code block.  But we only
+        // want to extract the code, so we skip this element.
+        return;
+    }
+
     let is_docblock = node.has_class("docblock");
 
     let add_newline = if node.is_element(&local_name!("br")) {

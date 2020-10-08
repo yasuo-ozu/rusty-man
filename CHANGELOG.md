@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 - Add interactive tui viewer that adds support for following links from the
   documentation.
 - Add tests for Rust 1.47.0.
+- Remove Notable Traits section from definitions.
 
 ## v0.3.0 (2020-09-11)
 
