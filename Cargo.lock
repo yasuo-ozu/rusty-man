@@ -1016,7 +1016,6 @@ dependencies = [
  "tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "termion 1.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "text-style 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "textwrap 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "webbrowser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1328,14 +1327,6 @@ dependencies = [
 [[package]]
 name = "textwrap"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "unicode-width 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "textwrap"
-version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "unicode-width 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1732,7 +1723,6 @@ dependencies = [
 "checksum termios 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6f0fcee7b24a25675de40d5bb4de6e41b0df07bc9856295e7e2b3a3600c400c2"
 "checksum text-style 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "01ecc55ab699ed1b4d0ebe64d7a8ee2611f55d0de4042e9c1ee5a81dee89e332"
 "checksum textwrap 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
-"checksum textwrap 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)" = "203008d98caf094106cfaba70acfed15e18ed3ddb7d94e49baec153a2b462789"
 "checksum thin-slice 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8eaa81235c7058867fa8c0e7314f33dcce9c215f535d1913822a2b3f5e289f3c"
 "checksum time 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)" = "ca8a50ef2360fbd1eeb0ecd46795a87a19024eb4b53c5dc916ca1fd95fe62438"
 "checksum tinyvec 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "238ce071d267c5710f9d31451efec16c5ee22de34df17cc05e56cbc92e967117"
