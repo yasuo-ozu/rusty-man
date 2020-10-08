@@ -14,6 +14,7 @@ SPDX-License-Identifier: MIT
 - Add syntax highlighting for code snippets in the doc comments.
 - Add interactive tui viewer that adds support for following links from the
   documentation.
+- Add tests for Rust 1.47.0.
 
 ## v0.3.0 (2020-09-11)
 
