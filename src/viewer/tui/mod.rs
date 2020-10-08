@@ -200,10 +200,22 @@ fn create_cursive(
     sources: Vec<Box<dyn source::Source>>,
     args: args::ViewerArgs,
 ) -> anyhow::Result<cursive::Cursive> {
+    use cursive::event::{Event, Key};
+
     let mut cursive =
         cursive::Cursive::try_new(create_backend).context("Could not create Cursive instance")?;
 
     cursive.set_user_data(Context::new(sources, args)?);
+
+    // vim-like keybindings
+    cursive.add_global_callback('j', |s| s.on_event(Key::Down.into()));
+    cursive.add_global_callback('k', |s| s.on_event(Key::Up.into()));
+    cursive.add_global_callback('h', |s| s.on_event(Key::Left.into()));
+    cursive.add_global_callback('l', |s| s.on_event(Key::Right.into()));
+    cursive.add_global_callback('G', |s| s.on_event(Key::End.into()));
+    cursive.add_global_callback('g', |s| s.on_event(Key::Home.into()));
+    cursive.add_global_callback(Event::CtrlChar('f'), |s| s.on_event(Key::PageDown.into()));
+    cursive.add_global_callback(Event::CtrlChar('b'), |s| s.on_event(Key::PageUp.into()));
 
     cursive.add_global_callback('q', |s| s.quit());
     cursive.add_global_callback(event::Key::Backspace, |s| {
