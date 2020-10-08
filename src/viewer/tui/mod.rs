@@ -9,13 +9,14 @@ use anyhow::Context as _;
 use cursive::view::{Resizable as _, Scrollable as _};
 use cursive::views::{Dialog, LinearLayout, PaddedView, Panel, TextView};
 use cursive::{event, theme, utils::markup};
+use cursive_markup::MarkupView;
 
 use crate::args;
 use crate::doc;
 use crate::source;
 use crate::viewer::{self, utils, utils::ManRenderer as _};
 
-use views::{CodeView, HtmlView, LinkView};
+use views::{CodeView, HtmlRenderer, LinkView};
 
 #[derive(Clone, Debug)]
 pub struct TuiViewer {}
@@ -168,15 +169,13 @@ impl<'s> utils::ManRenderer for TuiManRenderer<'s> {
 
     fn print_text(&mut self, indent: u8, text: &doc::Text) -> Result<(), Self::Error> {
         let indent = usize::from(indent);
-        let mut text = HtmlView::new(
-            &text.html,
-            self.highlighter.cloned(),
-            self.max_width.saturating_sub(indent),
-        );
+        let renderer = HtmlRenderer::new(&text.html, self.highlighter.cloned());
+        let mut view = MarkupView::with_renderer(renderer);
+        view.set_maximum_width(self.max_width.saturating_sub(indent));
         let doc_name = self.doc_name.clone();
         let doc_ty = self.doc_ty;
-        text.set_on_link(move |s, link| handle_link(s, &doc_name.clone(), doc_ty, link));
-        self.layout.add_child(indent_view(indent, text));
+        view.on_link_select(move |s, link| handle_link(s, &doc_name, doc_ty, link));
+        self.layout.add_child(indent_view(indent, view));
         Ok(())
     }
 
@@ -238,7 +237,7 @@ fn report_error(s: &mut cursive::Cursive, error: anyhow::Error) {
     s.add_layer(dialog);
 }
 
-fn handle_link(s: &mut cursive::Cursive, doc_name: &doc::Fqn, doc_ty: doc::ItemType, link: String) {
+fn handle_link(s: &mut cursive::Cursive, doc_name: &doc::Fqn, doc_ty: doc::ItemType, link: &str) {
     let result = resolve_link(doc_name, doc_ty, link).and_then(|link| open_link(s, link));
     if let Err(err) = result {
         report_error(s, err);
@@ -291,16 +290,14 @@ impl From<utils::DocLink> for ResolvedLink {
 fn resolve_link(
     doc_name: &doc::Fqn,
     doc_ty: doc::ItemType,
-    link: String,
+    link: &str,
 ) -> anyhow::Result<ResolvedLink> {
     // TODO: support docs.rs and doc.rust-lang.org links
-    match url::Url::parse(&link) {
-        Ok(_) => Ok(ResolvedLink::External(link)),
-        Err(url::ParseError::RelativeUrlWithoutBase) => resolve_doc_link(doc_name, doc_ty, &link)
-            .with_context(|| format!("Could not parse relative link URL: {}", &link)),
-        Err(e) => {
-            Err(anyhow::Error::new(e).context(format!("Could not parse link URL: {}", &link)))
-        }
+    match url::Url::parse(link) {
+        Ok(_) => Ok(ResolvedLink::External(link.to_owned())),
+        Err(url::ParseError::RelativeUrlWithoutBase) => resolve_doc_link(doc_name, doc_ty, link)
+            .with_context(|| format!("Could not parse relative link URL: {}", link)),
+        Err(e) => Err(anyhow::Error::new(e).context(format!("Could not parse link URL: {}", link))),
     }
 }
 

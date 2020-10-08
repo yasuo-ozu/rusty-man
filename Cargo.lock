@@ -237,6 +237,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cursive-markup"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cursive 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html2text 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-width 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "cursive_core"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1005,6 +1015,7 @@ dependencies = [
  "assert_cmd 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "atty 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "cursive 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cursive-markup 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "html2text 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "insta 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1615,6 +1626,7 @@ dependencies = [
 "checksum cssparser 0.27.2 (registry+https://github.com/rust-lang/crates.io-index)" = "754b69d351cdc2d8ee09ae203db831e005560fc6030da058f86ad60c92a9cb0a"
 "checksum cssparser-macros 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dfae75de57f2b2e85e8768c3ea840fd159c8f33e2b6522c7835b7abac81be16e"
 "checksum cursive 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7a9f12332ab2bca26979ef00cfef9a1c2e287db03b787a83d892ad9961f81374"
+"checksum cursive-markup 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "108cee1e66cebbf78ae2e08a53c2dfcfe6f8d536abcebbb6bb614f5ab1955868"
 "checksum cursive_core 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "85fc5b6a8ba2f1bc743892068bde466438f78d6247197e2dc094bfd53fdea4b7"
 "checksum darling 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0d706e75d87e35569db781a9b5e2416cff1236a47ed380831f959382ccd5f858"
 "checksum darling_core 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f0c960ae2da4de88a91b2d920c2a7233b400bc33cb28453a2987822d8392519b"
