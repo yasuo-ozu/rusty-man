@@ -32,6 +32,9 @@
 //! We don’t support the old index format.  As the format of the HTML files is not specified,
 //! rusty-man might not work with new Rust versions that change the documentation format.
 
+// The matches! macro was added in Rust 1.42, but our MSRV is 1.40.
+#![allow(clippy::match_like_matches_macro)]
+
 mod args;
 mod doc;
 mod index;
