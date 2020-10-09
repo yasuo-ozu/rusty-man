@@ -5,7 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-# Unreleased
+# v0.4.0 (2020-10-09)
+
+This minor release introduces a new interactive viewer, tui.  It also adds
+syntax highlighting for code in the documentation and support for Rust 1.47.0.
 
 - Remove suffix from duplicate members (e. g. from Deref implementations).
 - Use the `merge` crate to merge the command-line arguments and the settings in
