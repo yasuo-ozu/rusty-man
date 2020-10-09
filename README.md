@@ -14,6 +14,9 @@ DESCRIPTION
       `rustdoc`.
 ```
 
+<img alt="A screenshot of rusty-man displaying the std::result documentation with the tui viewer"
+     src="https://git.sr.ht/~ireas/rusty-man/blob/master/rusty-man.jpg"/>
+
 ## Example Usage
 
 Before running rusty-man, make sure that you generated the documentation with
