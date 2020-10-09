@@ -39,7 +39,7 @@ pub struct Args {
     #[structopt(name = "source", short, long, number_of_values = 1)]
     pub source_paths: Vec<String>,
 
-    /// The viewer for the rustdoc documentation (one of: plain, rich)
+    /// The viewer for the rustdoc documentation (one of: plain, rich, tui)
     #[structopt(long, parse(try_from_str = viewer::get_viewer))]
     #[serde(deserialize_with = "deserialize_viewer")]
     pub viewer: Option<Box<dyn viewer::Viewer>>,
@@ -91,8 +91,8 @@ pub struct Args {
 pub struct ViewerArgs {
     /// Disable syntax highlighting.
     ///
-    /// Per default, rusty-man tries to highlight Rust code snippets in its output if the rich text
-    /// viewer is selected.  If this option is set, it renders the HTML representation instead.
+    /// Per default, rusty-man tries to highlight Rust code snippets in its output if the rich or
+    /// tui viewer is selected.  If this option is set, it renders the HTML representation instead.
     #[merge(strategy = merge::bool::overwrite_false)]
     #[structopt(long)]
     pub no_syntax_highlight: bool,
@@ -116,7 +116,7 @@ pub struct ViewerArgs {
     /// The maximum width of the text output
     ///
     /// Unless the --width option is set, rusty-man sets the width of the text output based on the
-    /// width of the terminal with the maximum width set with this optioj.
+    /// width of the terminal with the maximum width set with this option.
     #[structopt(long)]
     pub max_width: Option<usize>,
 }
