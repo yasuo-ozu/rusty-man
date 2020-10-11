@@ -7,12 +7,13 @@ use std::convert;
 
 use anyhow::Context as _;
 use cursive::view::{Resizable as _, Scrollable as _};
-use cursive::views::{Dialog, LinearLayout, PaddedView, Panel, TextView};
+use cursive::views::{Dialog, EditView, LinearLayout, PaddedView, Panel, SelectView, TextView};
 use cursive::{event, theme, utils::markup};
 use cursive_markup::MarkupView;
 
 use crate::args;
 use crate::doc;
+use crate::index;
 use crate::source;
 use crate::viewer::{self, utils, utils::ManRenderer as _};
 
@@ -139,7 +140,6 @@ impl<'s> utils::ManRenderer for TuiManRenderer<'s> {
     ) -> Result<(), Self::Error> {
         let text = markup::StyledString::styled(text, theme::Effect::Bold);
         if let Some(link) = link {
-            // TODO: bold
             let heading = LinkView::new(text, move |s| {
                 if let Err(err) = open_link(s, link.clone().into()) {
                     report_error(s, err);
@@ -221,6 +221,7 @@ fn create_cursive(
             screen.pop_layer();
         }
     });
+    cursive.add_global_callback('o', open_doc_dialog);
 
     let mut theme = theme::Theme::default();
     theme.shadow = false;
@@ -254,6 +255,76 @@ fn report_error(s: &mut cursive::Cursive, error: anyhow::Error) {
     s.add_layer(dialog);
 }
 
+fn with_report_error<F>(s: &mut cursive::Cursive, f: F)
+where
+    F: Fn(&mut cursive::Cursive) -> anyhow::Result<()>,
+{
+    if let Err(err) = f(s) {
+        report_error(s, err);
+    }
+}
+
+fn open_doc_dialog(s: &mut cursive::Cursive) {
+    let mut edit_view = EditView::new();
+    edit_view.set_on_submit(|s, val| {
+        with_report_error(s, |s| {
+            s.pop_layer();
+            let sources = &context(s).sources;
+            let name = doc::Name::from(val.to_owned());
+            let mut doc = sources.find(&name, None)?;
+            if doc.is_none() {
+                let items = sources.search(&name)?;
+                if items.len() > 1 {
+                    select_doc_dialog(s, items);
+                    return Ok(());
+                } else if !items.is_empty() {
+                    doc = sources.find(&items[0].name, Some(items[0].ty))?;
+                }
+            }
+            if let Some(doc) = doc {
+                open_doc(s, &doc);
+                Ok(())
+            } else {
+                Err(anyhow::anyhow!("Could not find documentation for {}", name))
+            }
+        });
+    });
+    let dialog = Dialog::around(edit_view.min_width(40)).title("Open documentation");
+    s.add_layer(dialog);
+}
+
+fn select_doc_dialog(s: &mut cursive::Cursive, items: Vec<index::IndexItem>) {
+    let mut select_view = SelectView::new();
+    select_view.add_all(
+        items
+            .into_iter()
+            .map(|item| (item.name.as_ref().to_owned(), item)),
+    );
+    select_view.set_on_submit(|s, item| {
+        with_report_error(s, |s| {
+            let doc = context(s).sources.find(&item.name, Some(item.ty))?;
+            if let Some(doc) = doc {
+                open_doc(s, &doc);
+                Ok(())
+            } else {
+                Err(anyhow::anyhow!(
+                    "Could not find documentation for {}",
+                    item.name
+                ))
+            }
+        });
+    });
+    let dialog = Dialog::around(select_view.scrollable()).title("Select documentation item");
+    s.add_layer(dialog);
+}
+
+fn open_doc(s: &mut cursive::Cursive, doc: &doc::Doc) {
+    let mut renderer = context(s).create_renderer(&doc);
+    renderer.render_doc(&doc).unwrap();
+    let view = renderer.into_view();
+    s.add_fullscreen_layer(view);
+}
+
 fn handle_link(s: &mut cursive::Cursive, doc_name: &doc::Fqn, doc_ty: doc::ItemType, link: &str) {
     let result = resolve_link(doc_name, doc_ty, link).and_then(|link| open_link(s, link));
     if let Err(err) = result {
@@ -268,10 +339,7 @@ fn open_link(s: &mut cursive::Cursive, link: ResolvedLink) -> anyhow::Result<()>
                 .sources
                 .find(&name, ty)?
                 .with_context(|| format!("Could not find documentation for item: {}", name))?;
-            let mut renderer = context(s).create_renderer(&doc);
-            renderer.render_doc(&doc).unwrap();
-            let view = renderer.into_view();
-            s.add_fullscreen_layer(view);
+            open_doc(s, &doc);
             Ok(())
         }
         ResolvedLink::External(link) => webbrowser::open(&link)

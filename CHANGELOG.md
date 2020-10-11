@@ -5,6 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
+## Unreleased
+
+- Add `o` command for opening a documentation item to the tui viewer.
+
 ## v0.4.1 (2020-10-11)
 
 This patch release fixes an issue with the pager configuration.
