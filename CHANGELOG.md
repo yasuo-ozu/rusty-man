@@ -8,6 +8,7 @@ SPDX-License-Identifier: MIT
 ## Unreleased
 
 - Use the `LESS` environment variable to set the options for the pager.
+- Add the `--pager` option to set the pager for the plain and rich viewers.
 
 ## v0.4.0 (2020-10-09)
 

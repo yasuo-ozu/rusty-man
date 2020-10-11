@@ -119,6 +119,13 @@ pub struct ViewerArgs {
     /// width of the terminal with the maximum width set with this option.
     #[structopt(long)]
     pub max_width: Option<usize>,
+
+    /// The pager to use for the plain and rich viewers.
+    ///
+    /// Per default, rusty-man uses the pager set in the PAGER environment variable, or less if
+    /// this environment variable is not set.
+    #[structopt(long)]
+    pub pager: Option<String>,
 }
 
 impl Args {

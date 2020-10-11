@@ -21,9 +21,9 @@ struct Decorator {
 }
 
 impl PlainTextRenderer {
-    pub fn new(args: args::ViewerArgs) -> Self {
+    pub fn new(args: &args::ViewerArgs) -> Self {
         Self {
-            line_length: utils::get_line_length(&args),
+            line_length: utils::get_line_length(args),
         }
     }
 }

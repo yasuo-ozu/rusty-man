@@ -33,11 +33,11 @@ impl TextViewer {
         F: FnOnce(Box<dyn utils::ManRenderer<Error = io::Error>>) -> io::Result<()>,
     {
         let viewer: Box<dyn utils::ManRenderer<Error = io::Error>> = match self.mode {
-            TextMode::Plain => Box::new(plain::PlainTextRenderer::new(args)),
-            TextMode::Rich => Box::new(rich::RichTextRenderer::new(args)?),
+            TextMode::Plain => Box::new(plain::PlainTextRenderer::new(&args)),
+            TextMode::Rich => Box::new(rich::RichTextRenderer::new(&args)?),
         };
 
-        spawn_pager();
+        spawn_pager(&args);
         op(viewer).or_else(ignore_pipe_error).map_err(Into::into)
     }
 }
@@ -63,11 +63,16 @@ impl viewer::Viewer for TextViewer {
     }
 }
 
-pub fn spawn_pager() {
+pub fn spawn_pager(args: &args::ViewerArgs) {
     if env::var_os("LESS").is_none() {
         env::set_var("LESS", "cR");
     }
-    pager::Pager::with_default_pager("less").setup()
+    let mut pager = if let Some(pager) = &args.pager {
+        pager::Pager::with_pager(&pager)
+    } else {
+        pager::Pager::with_default_pager("less")
+    };
+    pager.setup();
 }
 
 fn ignore_pipe_error(error: io::Error) -> io::Result<()> {

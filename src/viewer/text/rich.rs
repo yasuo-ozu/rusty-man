@@ -16,10 +16,10 @@ pub struct RichTextRenderer {
 }
 
 impl RichTextRenderer {
-    pub fn new(args: args::ViewerArgs) -> anyhow::Result<Self> {
+    pub fn new(args: &args::ViewerArgs) -> anyhow::Result<Self> {
         Ok(Self {
-            line_length: utils::get_line_length(&args),
-            highlighter: utils::get_highlighter(&args)?,
+            line_length: utils::get_line_length(args),
+            highlighter: utils::get_highlighter(args)?,
         })
     }
 }
