@@ -4,6 +4,7 @@
 mod plain;
 mod rich;
 
+use std::env;
 use std::io;
 
 use crate::args;
@@ -63,7 +64,10 @@ impl viewer::Viewer for TextViewer {
 }
 
 pub fn spawn_pager() {
-    pager::Pager::with_default_pager("less -cr").setup()
+    if env::var_os("LESS").is_none() {
+        env::set_var("LESS", "cR");
+    }
+    pager::Pager::with_default_pager("less").setup()
 }
 
 fn ignore_pipe_error(error: io::Error) -> io::Result<()> {
