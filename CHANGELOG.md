@@ -5,7 +5,9 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-## Unreleased
+## v0.4.1 (2020-10-11)
+
+This patch release fixes an issue with the pager configuration.
 
 - Use the `LESS` environment variable to set the options for the pager.
 - Add the `--pager` option to set the pager for the plain and rich viewers.
