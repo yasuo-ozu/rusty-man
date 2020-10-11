@@ -45,7 +45,7 @@ impl TextViewer {
 impl viewer::Viewer for TextViewer {
     fn open(
         &self,
-        _sources: Vec<Box<dyn source::Source>>,
+        _sources: source::Sources,
         args: args::ViewerArgs,
         doc: &doc::Doc,
     ) -> anyhow::Result<()> {
@@ -54,7 +54,7 @@ impl viewer::Viewer for TextViewer {
 
     fn open_examples(
         &self,
-        _sources: Vec<Box<dyn source::Source>>,
+        _sources: source::Sources,
         args: args::ViewerArgs,
         doc: &doc::Doc,
         examples: Vec<doc::Example>,

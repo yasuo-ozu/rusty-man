@@ -9,9 +9,8 @@
 //!    and the `source` module.  Per default, we look for documentation in the directory
 //!    `share/doc/rust{,-doc}/html` relative to the Rust installation path (`rustc --print sysroot`
 //!    or `usr`) and in `./target/doc`.
-//! 2. We try to look up the given keyword in all acailable sources, see the `find_doc` function
-//!    and the `source` module for the lookup logic and the `doc` module for the loaded
-//!    documentation.
+//! 2. We try to look up the given keyword in all acailable sources, see the and the `source`
+//!    module for the lookup logic and the `doc` module for the loaded documentation.
 //! 3. If we didn’t find a match in the previous step, we load the search index from the
 //!    `search-index.js` file for all sources and try to find a matching item.  If we find one, we
 //!    open the documentation for that item as in step 2.  See the `search_doc` function and the
@@ -52,7 +51,7 @@ fn main() -> anyhow::Result<()> {
 
     let args = args::Args::load()?;
     let sources = load_sources(&args.source_paths, !args.no_default_sources)?;
-    let doc = if let Some(doc) = find_doc(&sources, &args.keyword, None)? {
+    let doc = if let Some(doc) = sources.find(&args.keyword, None)? {
         Some(doc)
     } else if !args.no_search {
         search_doc(&sources, &args.keyword)?
@@ -80,11 +79,8 @@ fn main() -> anyhow::Result<()> {
 }
 
 /// Load all sources given as a command-line argument and, if enabled, the default sources.
-fn load_sources(
-    sources: &[String],
-    load_default_sources: bool,
-) -> anyhow::Result<Vec<Box<dyn source::Source>>> {
-    let mut vec: Vec<Box<dyn source::Source>> = Vec::new();
+fn load_sources(sources: &[String], load_default_sources: bool) -> anyhow::Result<source::Sources> {
+    let mut vec = Vec::new();
 
     if load_default_sources {
         for path in get_default_sources() {
@@ -106,7 +102,7 @@ fn load_sources(
     // The last source should be searched first --> reverse source vector
     vec.reverse();
 
-    Ok(vec)
+    Ok(source::Sources::new(vec))
 }
 
 fn get_default_sources() -> Vec<path::PathBuf> {
@@ -132,32 +128,14 @@ fn get_sysroot() -> Option<path::PathBuf> {
         .map(|s| s.trim().into())
 }
 
-/// Find the documentation for an item with the given name (exact matches only).
-fn find_doc(
-    sources: &[Box<dyn source::Source>],
-    name: &doc::Name,
-    ty: Option<doc::ItemType>,
-) -> anyhow::Result<Option<doc::Doc>> {
-    let fqn = name.clone().into();
-    for source in sources {
-        if let Some(doc) = source.find_doc(&fqn, ty)? {
-            return Ok(Some(doc));
-        }
-    }
-    log::info!("Could not find item '{}'", fqn);
-    Ok(None)
-}
-
 /// Use the search index to find the documentation for an item that partially matches the given
 /// keyword.
-fn search_doc(
-    sources: &[Box<dyn source::Source>],
-    name: &doc::Name,
-) -> anyhow::Result<Option<doc::Doc>> {
+fn search_doc(sources: &source::Sources, name: &doc::Name) -> anyhow::Result<Option<doc::Doc>> {
     if let Some(item) = search_item(sources, name)? {
         use anyhow::Context;
 
-        let doc = find_doc(sources, &item.name, Some(item.ty))?
+        let doc = sources
+            .find(&item.name, Some(item.ty))?
             .with_context(|| format!("Could not find documentation for {}", &item.name))?;
         Ok(Some(doc))
     } else {
@@ -171,21 +149,10 @@ fn search_doc(
 
 /// Use the search index to find an item that partially matches the given keyword.
 fn search_item(
-    sources: &[Box<dyn source::Source>],
+    sources: &source::Sources,
     name: &doc::Name,
 ) -> anyhow::Result<Option<index::IndexItem>> {
-    let indexes = sources
-        .iter()
-        .filter_map(|s| s.load_index().transpose())
-        .collect::<anyhow::Result<Vec<_>>>()?;
-    let mut items = indexes
-        .iter()
-        .map(|i| i.find(name))
-        .collect::<Vec<_>>()
-        .concat();
-    items.sort_unstable();
-    items.dedup();
-
+    let items = sources.search(name)?;
     if items.is_empty() {
         Err(anyhow::anyhow!(
             "Could not find documentation for {}",
@@ -213,7 +180,7 @@ fn select_item(
         name
     );
 
-    println!("Found mulitple matches for {} – select one of:", name);
+    println!("Found multiple matches for {} – select one of:", name);
     println!();
     let width = (items.len() + 1).to_string().len();
     for (i, item) in items.iter().enumerate() {
@@ -240,35 +207,28 @@ mod tests {
     #[test]
     fn test_find_doc() {
         with_rustdoc("*", |_, path| {
-            let sources = vec![source::get_source(path).unwrap()];
+            let sources = source::Sources::new(vec![source::get_source(path).unwrap()]);
 
-            assert!(
-                super::find_doc(&sources, &"kuchiki".to_owned().into(), None)
-                    .unwrap()
-                    .is_some()
-            );
-            assert!(
-                super::find_doc(&sources, &"kuchiki::NodeRef".to_owned().into(), None)
-                    .unwrap()
-                    .is_some()
-            );
-            assert!(super::find_doc(
-                &sources,
-                &"kuchiki::NodeDataRef::as_node".to_owned().into(),
-                None
-            )
-            .unwrap()
-            .is_some());
-            assert!(
-                super::find_doc(&sources, &"kuchiki::traits".to_owned().into(), None)
-                    .unwrap()
-                    .is_some()
-            );
-            assert!(
-                super::find_doc(&sources, &"kachiki".to_owned().into(), None)
-                    .unwrap()
-                    .is_none()
-            );
+            assert!(sources
+                .find(&"kuchiki".to_owned().into(), None)
+                .unwrap()
+                .is_some());
+            assert!(sources
+                .find(&"kuchiki::NodeRef".to_owned().into(), None)
+                .unwrap()
+                .is_some());
+            assert!(sources
+                .find(&"kuchiki::NodeDataRef::as_node".to_owned().into(), None)
+                .unwrap()
+                .is_some());
+            assert!(sources
+                .find(&"kuchiki::traits".to_owned().into(), None)
+                .unwrap()
+                .is_some());
+            assert!(sources
+                .find(&"kachiki".to_owned().into(), None)
+                .unwrap()
+                .is_none());
         });
     }
 }

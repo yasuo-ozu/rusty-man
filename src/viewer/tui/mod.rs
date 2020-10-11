@@ -28,7 +28,7 @@ impl TuiViewer {
 
     fn render<F>(
         &self,
-        sources: Vec<Box<dyn source::Source>>,
+        sources: source::Sources,
         args: args::ViewerArgs,
         doc: &doc::Doc,
         f: F,
@@ -49,7 +49,7 @@ impl TuiViewer {
 impl viewer::Viewer for TuiViewer {
     fn open(
         &self,
-        sources: Vec<Box<dyn source::Source>>,
+        sources: source::Sources,
         args: args::ViewerArgs,
         doc: &doc::Doc,
     ) -> anyhow::Result<()> {
@@ -58,7 +58,7 @@ impl viewer::Viewer for TuiViewer {
 
     fn open_examples(
         &self,
-        sources: Vec<Box<dyn source::Source>>,
+        sources: source::Sources,
         args: args::ViewerArgs,
         doc: &doc::Doc,
         examples: Vec<doc::Example>,
@@ -70,16 +70,13 @@ impl viewer::Viewer for TuiViewer {
 }
 
 pub struct Context {
-    pub sources: Vec<Box<dyn source::Source>>,
+    pub sources: source::Sources,
     pub args: args::ViewerArgs,
     pub highlighter: Option<utils::Highlighter>,
 }
 
 impl Context {
-    pub fn new(
-        sources: Vec<Box<dyn source::Source>>,
-        args: args::ViewerArgs,
-    ) -> anyhow::Result<Context> {
+    pub fn new(sources: source::Sources, args: args::ViewerArgs) -> anyhow::Result<Context> {
         let highlighter = utils::get_highlighter(&args)?;
         Ok(Context {
             sources,
@@ -197,7 +194,7 @@ fn create_backend() -> anyhow::Result<Box<dyn cursive::backend::Backend>> {
 }
 
 fn create_cursive(
-    sources: Vec<Box<dyn source::Source>>,
+    sources: source::Sources,
     args: args::ViewerArgs,
 ) -> anyhow::Result<cursive::Cursive> {
     use cursive::event::{Event, Key};
@@ -264,26 +261,13 @@ fn handle_link(s: &mut cursive::Cursive, doc_name: &doc::Fqn, doc_ty: doc::ItemT
     }
 }
 
-fn find_doc(
-    sources: &[Box<dyn source::Source>],
-    ty: Option<doc::ItemType>,
-    name: &doc::Fqn,
-) -> anyhow::Result<doc::Doc> {
-    for source in sources {
-        if let Some(doc) = source.find_doc(name, ty)? {
-            return Ok(doc);
-        }
-    }
-    Err(anyhow::anyhow!(
-        "Could not find documentation for item: {}",
-        name
-    ))
-}
-
 fn open_link(s: &mut cursive::Cursive, link: ResolvedLink) -> anyhow::Result<()> {
     match link {
         ResolvedLink::Doc(ty, name) => {
-            let doc = find_doc(&context(s).sources, ty, &name)?;
+            let doc = context(s)
+                .sources
+                .find(&name, ty)?
+                .with_context(|| format!("Could not find documentation for item: {}", name))?;
             let mut renderer = context(s).create_renderer(&doc);
             renderer.render_doc(&doc).unwrap();
             let view = renderer.into_view();

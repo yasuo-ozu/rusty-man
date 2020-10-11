@@ -15,14 +15,14 @@ use crate::source;
 pub trait Viewer: fmt::Debug {
     fn open(
         &self,
-        sources: Vec<Box<dyn source::Source>>,
+        sources: source::Sources,
         args: args::ViewerArgs,
         doc: &doc::Doc,
     ) -> anyhow::Result<()>;
 
     fn open_examples(
         &self,
-        sources: Vec<Box<dyn source::Source>>,
+        sources: source::Sources,
         args: args::ViewerArgs,
         doc: &doc::Doc,
         examples: Vec<doc::Example>,

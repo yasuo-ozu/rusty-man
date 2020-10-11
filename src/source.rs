@@ -22,6 +22,9 @@ pub trait Source {
     fn load_index(&self) -> anyhow::Result<Option<index::Index>>;
 }
 
+/// A collection of sources.
+pub struct Sources(Vec<Box<dyn Source>>);
+
 /// Local directory containing documentation data.
 ///
 /// The directory must contain documentation for one or more crates in subdirectories.  Suitable
@@ -30,6 +33,45 @@ pub trait Source {
 #[derive(Clone, Debug, PartialEq)]
 pub struct DirSource {
     path: path::PathBuf,
+}
+
+impl Sources {
+    pub fn new(sources: Vec<Box<dyn Source>>) -> Sources {
+        Sources(sources)
+    }
+
+    /// Find the documentation for an item with the given name (exact matches only).
+    pub fn find(
+        &self,
+        name: &doc::Name,
+        ty: Option<doc::ItemType>,
+    ) -> anyhow::Result<Option<doc::Doc>> {
+        let fqn = name.clone().into();
+        for source in &self.0 {
+            if let Some(doc) = source.find_doc(&fqn, ty)? {
+                return Ok(Some(doc));
+            }
+        }
+        log::info!("Could not find item '{}'", fqn);
+        Ok(None)
+    }
+
+    /// Use the search index to find an item that partially matches the given keyword.
+    pub fn search(&self, name: &doc::Name) -> anyhow::Result<Vec<index::IndexItem>> {
+        let indexes = self
+            .0
+            .iter()
+            .filter_map(|s| s.load_index().transpose())
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        let mut items = indexes
+            .iter()
+            .map(|i| i.find(name))
+            .collect::<Vec<_>>()
+            .concat();
+        items.sort_unstable();
+        items.dedup();
+        Ok(items)
+    }
 }
 
 impl DirSource {
