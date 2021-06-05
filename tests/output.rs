@@ -62,7 +62,7 @@ assert_doc![
     mod_anyhow("*"): "anyhow",
     macro_anyhow_anyhow("*"): "anyhow::anyhow",
     macro_anyhow_ensure("*"): "anyhow::ensure",
-    struct_anyhow_error("*"): "anyhow::Error",
+    struct_anyhow_error("<1.51.0"): "anyhow::Error",
     trait_anyhow_context("*"): "anyhow::Context",
     type_anyhow_result("*"): "anyhow::Result",
 ];
