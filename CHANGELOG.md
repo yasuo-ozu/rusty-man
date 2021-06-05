@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 ## Unreleased
 
 - Add `o` command for opening a documentation item to the tui viewer.
-- Add tests for Rust 1.48.0.
+- Add tests for Rust 1.48.0 and 1.49.0.
 
 ## v0.4.1 (2020-10-11)
 
