@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_index() {
-        with_rustdoc(">=1.44.0", |_, path| {
+        with_rustdoc(">=1.44.0, <1.50.0", |_, path| {
             let index = Index::load(path.join("search-index.js")).unwrap().unwrap();
 
             let empty: Vec<IndexItem> = Vec::new();
@@ -275,6 +275,31 @@ mod tests {
             );
             assert_eq!(empty, index.find(&"DataRef".to_owned().into()));
             assert_eq!(empty, index.find(&"NodeDataReff".to_owned().into()));
+        });
+
+        with_rustdoc(">=1.50.0", |_, path| {
+            let index = Index::load(path.join("search-index.js")).unwrap().unwrap();
+
+            let empty: Vec<IndexItem> = Vec::new();
+
+            let node_data_ref = vec![IndexItem {
+                name: "kuchiki::NodeDataRef".to_owned().into(),
+                ty: ItemType::Struct,
+                description: "Holds a strong reference to a node, but dereferences to …".to_owned(),
+            }];
+            assert_eq!(node_data_ref, index.find(&"NodeDataRef".to_owned().into()));
+            assert_eq!(
+                node_data_ref,
+                index.find(&"kuchiki::NodeDataRef".to_owned().into())
+            );
+            assert_eq!(empty, index.find(&"DataRef".to_owned().into()));
+            assert_eq!(empty, index.find(&"NodeDataReff".to_owned().into()));
+        });
+
+        with_rustdoc(">=1.44.0", |_, path| {
+            let index = Index::load(path.join("search-index.js")).unwrap().unwrap();
+
+            let empty: Vec<IndexItem> = Vec::new();
 
             let as_node = vec![IndexItem {
                 name: "kuchiki::NodeDataRef::as_node".to_owned().into(),

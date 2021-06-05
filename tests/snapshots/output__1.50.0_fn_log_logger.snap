@@ -1,0 +1,15 @@
+---
+source: tests/output.rs
+expression: "get_stdout(&[item])"
+---
+log                                     Function log::logger                               rusty-man
+
+SYNOPSIS
+      pub fn logger() -> &'static dyn Log
+
+DESCRIPTION
+      Returns a reference to the logger.
+      
+      If a logger has not been set, a no-op implementation is returned.
+
+
