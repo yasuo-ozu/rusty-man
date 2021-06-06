@@ -1,5 +1,5 @@
 <!---
-SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
+SPDX-FileCopyrightText: 2020-2021 Robin Krahl <robin.krahl@ireas.org>
 SPDX-License-Identifier: MIT
 -->
 
@@ -74,5 +74,9 @@ To compile rusty-man, you need Rust 1.40 or later.
 ### Installing from crates.io
 
 ```
-cargo install rusty-man
+cargo install rusty-man --locked
 ```
+
+You can omit the `--locked` option to use the latest dependency versions
+available.  Note that this might cause issues if a dependency breaks semantic
+versioning.
