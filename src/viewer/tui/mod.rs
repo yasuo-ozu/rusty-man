@@ -224,7 +224,7 @@ fn create_cursive(
     cursive.add_global_callback('o', open_doc_dialog);
 
     let mut theme = theme::Theme {
-        shadow:  false,
+        shadow: false,
         ..Default::default()
     };
     theme.palette[theme::PaletteColor::Background] = theme::Color::TerminalDefault;
