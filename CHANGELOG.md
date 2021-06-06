@@ -5,7 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-## Unreleased
+## v0.4.2 (2021-06-06)
+
+This patch releases adds support for the new search index format (Rust 1.52.0
+and later).
 
 - Add `o` command for opening a documentation item to the tui viewer.
 - Add tests for Rust 1.48.0, 1.49.0, 1.50.0, 1.51.0, 1.52.0 and 1.52.1.
