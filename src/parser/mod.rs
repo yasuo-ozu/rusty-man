@@ -202,7 +202,7 @@ fn push_node_to_text(s: &mut String, node: &kuchiki::NodeRef) {
         false
     };
     if add_newline {
-        s.push_str("\n");
+        s.push('\n');
     }
 
     if let Some(text) = node.as_text() {
@@ -214,7 +214,7 @@ fn push_node_to_text(s: &mut String, node: &kuchiki::NodeRef) {
     }
 
     if is_docblock && !s.is_empty() && !s.ends_with('\n') {
-        s.push_str("\n");
+        s.push('\n');
     }
 }
 

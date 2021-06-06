@@ -223,8 +223,10 @@ fn create_cursive(
     });
     cursive.add_global_callback('o', open_doc_dialog);
 
-    let mut theme = theme::Theme::default();
-    theme.shadow = false;
+    let mut theme = theme::Theme {
+        shadow:  false,
+        ..Default::default()
+    };
     theme.palette[theme::PaletteColor::Background] = theme::Color::TerminalDefault;
     theme.palette[theme::PaletteColor::View] = theme::Color::TerminalDefault;
     theme.palette[theme::PaletteColor::Primary] = theme::Color::TerminalDefault;

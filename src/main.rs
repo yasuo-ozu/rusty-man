@@ -31,8 +31,13 @@
 //! We don’t support the old index format.  As the format of the HTML files is not specified,
 //! rusty-man might not work with new Rust versions that change the documentation format.
 
-// The matches! macro was added in Rust 1.42, but our MSRV is 1.40.
-#![allow(clippy::match_like_matches_macro)]
+// We have to disable some clippy lints as our MSRV is 1.40:
+#![allow(
+    // slice::strip_suffix added in 1.51
+    clippy::manual_strip,
+    // matches! added in 1.42
+    clippy::match_like_matches_macro,
+)]
 
 mod args;
 mod doc;
@@ -172,6 +177,7 @@ fn select_item(
     name: &doc::Name,
 ) -> anyhow::Result<Option<index::IndexItem>> {
     use std::io::Write;
+    use std::str::FromStr;
 
     // If we are not on a TTY, we can’t ask the user to select an item --> abort
     anyhow::ensure!(
@@ -192,7 +198,7 @@ fn select_item(
 
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
-    if let Ok(i) = usize::from_str_radix(input.trim(), 10) {
+    if let Ok(i) = usize::from_str(input.trim()) {
         Ok(items.get(i).map(Clone::clone))
     } else {
         Ok(None)

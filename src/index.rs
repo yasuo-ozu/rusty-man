@@ -131,7 +131,7 @@ impl Index {
             let line = line?;
             if let Some(json) = &mut json {
                 if line == "}');" {
-                    json.push_str("}");
+                    json.push('}');
                     finished = true;
                     break;
                 } else {
