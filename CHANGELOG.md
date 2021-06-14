@@ -8,6 +8,8 @@ SPDX-License-Identifier: MIT
 # Unreleased
 
 - Prepare supporting multiple parser backends.
+- Read the `$CARGO_TARGET_DIR` and `$CARGO_BUILD_TARGET_DIR` environment
+  variables to determine the Cargo target directory.
 
 ## v0.4.2 (2021-06-06)
 
