@@ -8,9 +8,10 @@
 //! 1. The sources, currently only local directories, are loaded, see the `load_sources` function
 //!    and the `source` module.  Per default, we look for documentation in the directory
 //!    `share/doc/rust{,-doc}/html` relative to the Rust installation path (`rustc --print sysroot`
-//!    or `usr`) and in `./target/doc`.
-//! 2. We try to look up the given keyword in all acailable sources, see the and the `source`
-//!    module for the lookup logic and the `doc` module for the loaded documentation.
+//!    or `usr`) and the `doc` directory relative to the Cargo target directory
+//!    (`$CARGO_TARGET_DIR`, `$CARGO_BUILD_TARGET_DIR` or `./target`).
+//! 2. We try to look up the given keyword in all available sources, see the `parser` and the
+//!    `source` module for the lookup logic and the `doc` module for the loaded documentation.
 //! 3. If we didn’t find a match in the previous step, we load the search index from the
 //!    `search-index.js` file for all sources and try to find a matching item.  If we find one, we
 //!    open the documentation for that item as in step 2.  See the `search_doc` function and the
@@ -48,6 +49,7 @@ mod source;
 mod test_utils;
 mod viewer;
 
+use std::env;
 use std::io;
 use std::path;
 
@@ -111,13 +113,15 @@ fn load_sources(sources: &[String], load_default_sources: bool) -> anyhow::Resul
 }
 
 fn get_default_sources() -> Vec<path::PathBuf> {
-    let mut default_sources: Vec<path::PathBuf> = Vec::new();
+    let mut default_sources = Vec::new();
 
     let sysroot = get_sysroot().unwrap_or_else(|| path::PathBuf::from("/usr"));
     default_sources.push(sysroot.join("share/doc/rust/html"));
     default_sources.push(sysroot.join("share/doc/rust-doc/html"));
 
-    default_sources.push(path::PathBuf::from("./target/doc"));
+    let mut target_dir = get_target_dir();
+    target_dir.push("doc");
+    default_sources.push(target_dir);
 
     default_sources
 }
@@ -131,6 +135,13 @@ fn get_sysroot() -> Option<path::PathBuf> {
         .filter(|o| o.status.success())
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .map(|s| s.trim().into())
+}
+
+fn get_target_dir() -> path::PathBuf {
+    env::var_os("CARGO_TARGET_DIR")
+        .or_else(|| env::var_os("CARGO_BUILD_TARGET_DIR"))
+        .map(From::from)
+        .unwrap_or_else(|| "./target".into())
 }
 
 /// Use the search index to find the documentation for an item that partially matches the given

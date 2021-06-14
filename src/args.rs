@@ -47,8 +47,9 @@ pub struct Args {
     /// Do not search the default documentation sources
     ///
     /// If this option is not set, rusty-man appends `$sysroot/share/doc/rust{,-doc}/html` and
-    /// `target/doc` to the list of sources if they exist.  `$sysroot` is the output of `rustc
-    /// --print sysroot` or `/usr` if that command does not output a valid path.
+    /// `$target/doc` to the list of sources if they exist.  `$sysroot` is the output of `rustc
+    /// --print sysroot` or `/usr` if that command does not output a valid path.  `$target` is
+    /// `$CARGO_TARGET_DIR`, `$CARGO_BUILD_TARGET_DIR` or `./target`.
     #[merge(strategy = merge::bool::overwrite_false)]
     #[structopt(long)]
     pub no_default_sources: bool,
