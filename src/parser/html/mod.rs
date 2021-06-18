@@ -444,15 +444,15 @@ fn get_method_groups(
 
     while let Some(subheading) = &next {
         if subheading.is_element(&local_name!("h3")) && subheading.has_class("impl") {
-            let title = subheading.first_child();
-            let impl_items = subheading.next_sibling();
-            if let Some((title, impl_items)) = title.zip(impl_items) {
-                if let Some(group) =
-                    get_impl_items(parent, &title, &impl_items, ty, &subheading_type)?
-                {
-                    groups.push(group);
+            if let Some(title) = subheading.first_child() {
+                if let Some(impl_items) = subheading.next_sibling() {
+                    if let Some(group) =
+                        get_impl_items(parent, &title, &impl_items, ty, &subheading_type)?
+                    {
+                        groups.push(group);
+                    }
+                    next = impl_items.next_sibling();
                 }
-                next = impl_items.next_sibling();
             }
         } else if subheading.is_element(&local_name!("details")) {
             let summary = subheading.first_child();
@@ -460,15 +460,15 @@ fn get_method_groups(
                 .as_ref()
                 .and_then(|n| n.first_child())
                 .filter(|n| n.is_element(&local_name!("h3")) && n.has_class("impl"));
-            let title = h3.and_then(|n| n.first_child());
-            let impl_items = summary.and_then(|n| n.next_sibling());
-            if let Some((title, impl_items)) = title.zip(impl_items) {
-                if let Some(group) =
-                    get_impl_items(parent, &title, &impl_items, ty, &subheading_type)?
-                {
-                    groups.push(group);
+            if let Some(title) = h3.and_then(|n| n.first_child()) {
+                if let Some(impl_items) = summary.and_then(|n| n.next_sibling()) {
+                    if let Some(group) =
+                        get_impl_items(parent, &title, &impl_items, ty, &subheading_type)?
+                    {
+                        groups.push(group);
+                    }
+                    next = subheading.next_sibling();
                 }
-                next = subheading.next_sibling();
             }
         } else {
             next = None;
