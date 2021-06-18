@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 - Prepare supporting multiple parser backends.
 - Read the `$CARGO_TARGET_DIR` and `$CARGO_BUILD_TARGET_DIR` environment
   variables to determine the Cargo target directory.
+- Add support and tests for Rust 1.53.0.
 
 ## v0.4.2 (2021-06-06)
 

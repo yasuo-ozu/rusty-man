@@ -441,36 +441,55 @@ fn get_method_groups(
     let mut groups: Vec<doc::MemberGroup> = Vec::new();
     let heading = select_first(document, &format!("#{}", heading_id))?;
     let mut next = heading.as_ref().and_then(NodeRefExt::next_sibling_element);
+
     while let Some(subheading) = &next {
         if subheading.is_element(&local_name!("h3")) && subheading.has_class("impl") {
-            if let Some(title_element) = subheading.first_child() {
-                let title = title_element.text_contents();
-                next = subheading.next_sibling();
-                if let Some(impl_items) = &next {
-                    if impl_items.is_element(&local_name!("div"))
-                        && impl_items.has_class("impl-items")
-                    {
-                        let group = get_method_group(
-                            parent,
-                            Some(title),
-                            &impl_items,
-                            ty,
-                            &subheading_type,
-                        )?;
-                        if let Some(group) = group {
-                            groups.push(group);
-                        }
-                        next = impl_items.next_sibling();
-                    }
+            let title = subheading.first_child();
+            let impl_items = subheading.next_sibling();
+            if let Some((title, impl_items)) = title.zip(impl_items) {
+                if let Some(group) =
+                    get_impl_items(parent, &title, &impl_items, ty, &subheading_type)?
+                {
+                    groups.push(group);
                 }
-            } else {
-                next = None;
+                next = impl_items.next_sibling();
+            }
+        } else if subheading.is_element(&local_name!("details")) {
+            let summary = subheading.first_child();
+            let h3 = summary
+                .as_ref()
+                .and_then(|n| n.first_child())
+                .filter(|n| n.is_element(&local_name!("h3")) && n.has_class("impl"));
+            let title = h3.and_then(|n| n.first_child());
+            let impl_items = summary.and_then(|n| n.next_sibling());
+            if let Some((title, impl_items)) = title.zip(impl_items) {
+                if let Some(group) =
+                    get_impl_items(parent, &title, &impl_items, ty, &subheading_type)?
+                {
+                    groups.push(group);
+                }
+                next = subheading.next_sibling();
             }
         } else {
             next = None;
         }
     }
     Ok(groups)
+}
+
+fn get_impl_items(
+    parent: &doc::Fqn,
+    title: &kuchiki::NodeRef,
+    impl_items: &kuchiki::NodeRef,
+    ty: doc::ItemType,
+    subheading_type: &markup5ever::LocalName,
+) -> anyhow::Result<Option<doc::MemberGroup>> {
+    let title = title.text_contents();
+    if impl_items.is_element(&local_name!("div")) && impl_items.has_class("impl-items") {
+        get_method_group(parent, Some(title), &impl_items, ty, &subheading_type)
+    } else {
+        Ok(None)
+    }
 }
 
 fn get_method_group(
@@ -567,8 +586,19 @@ fn get_implementation_group(
 
     if let Some(list_div) = list_div {
         for item in list_div.as_node().children() {
-            if item.is_element(&local_name!("h3")) && item.has_class("impl") {
-                let code = item.first_child();
+            let h3 = if item.is_element(&local_name!("details")) {
+                let summary = item.first_child();
+                summary
+                    .and_then(|n| n.first_child())
+                    .filter(|n| n.is_element(&local_name!("h3")) && n.has_class("impl"))
+            } else if item.is_element(&local_name!("h3")) && item.has_class("impl") {
+                Some(item)
+            } else {
+                None
+            };
+
+            if let Some(h3) = h3 {
+                let code = h3.first_child();
                 let a = code
                     .as_ref()
                     .and_then(|n| select_first(n, "a").transpose())

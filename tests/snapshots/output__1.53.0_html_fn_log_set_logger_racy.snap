@@ -1,0 +1,31 @@
+---
+source: tests/output.rs
+expression: "get_stdout(&[item])"
+---
+log                                 Function log::set_logger_racy                          rusty-man
+
+SYNOPSIS
+      pub unsafe fn set_logger_racy(
+          logger: &'static dyn Log
+      ) -> Result<(), SetLoggerError>
+
+DESCRIPTION
+      A thread-unsafe version of `set_logger`.
+      
+      This function is available on all platforms, even those that do not have support for atomics
+      that is needed by `set_logger`.
+      
+      In almost all cases, `set_logger` should be preferred.
+      
+      # Safety
+      
+      This function is only safe to call when no other logger initialization function is called
+      while this function still executes.
+      
+      This can be upheld by (for example) making sure that **there are no other threads**, and (on
+      embedded) that **interrupts are disabled**.
+      
+      It is safe to use other logging functions while this function runs (including all logging
+      macros).
+
+

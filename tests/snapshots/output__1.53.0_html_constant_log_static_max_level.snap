@@ -1,0 +1,19 @@
+---
+source: tests/output.rs
+expression: "get_stdout(&[item])"
+---
+log                                Constant log::STATIC_MAX_LEVEL                          rusty-man
+
+SYNOPSIS
+      pub const STATIC_MAX_LEVEL: LevelFilter;
+
+DESCRIPTION
+      The statically resolved maximum log level.
+      
+      See the crate level documentation for information on how to configure this.
+      
+      This value is checked by the log macros, but not by the `Log`ger returned by the `logger`
+      function. Code that manually calls functions on that value should compare the level against
+      this value.
+
+
