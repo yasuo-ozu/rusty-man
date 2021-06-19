@@ -36,8 +36,6 @@
 #![allow(
     // slice::strip_suffix added in 1.51
     clippy::manual_strip,
-    // matches! added in 1.42
-    clippy::match_like_matches_macro,
 )]
 
 mod args;

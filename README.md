@@ -100,7 +100,7 @@ the label “good first issue”][issues] in rusty-man’s issue tracker.
 
 ## Minimum Supported Rust Version
 
-This crate supports Rust 1.40 or later.
+This crate supports Rust 1.45.0 or later.
 
 ## Contact
 

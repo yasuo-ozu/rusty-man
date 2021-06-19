@@ -8,7 +8,7 @@ sources:
 tasks:
   - setup: |
       rustup set profile minimal
-      rustup default 1.40.0
+      rustup default 1.45.0
   - version: |
       rustc -V
   - build: |

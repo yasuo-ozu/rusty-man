@@ -5,6 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
+## Unreleased
+
+- Bump MSRV to 1.45.0.
+
 ## v0.4.3 (2021-06-19)
 
 This patch release adds support for Rust 1.53.0 and for non-default target
