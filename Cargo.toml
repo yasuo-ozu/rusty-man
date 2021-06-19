@@ -24,7 +24,7 @@ kuchiki = "0.8.0"
 log = "0.4.11"
 markup5ever = "0.10.0"
 merge = "0.1.0"
-pager = "0.15.0"
+pager = "0.16.0"
 serde_json = "1.0.56"
 serde_tuple = "0.5.0"
 termion = "1.5"
@@ -39,7 +39,7 @@ default-features = false
 features = ["termion-backend"]
 
 [dependencies.env_logger]
-version = "0.7.1"
+version = "0.8.0"
 default-features = false
 
 [dependencies.serde]
@@ -61,7 +61,7 @@ features = ["cursive", "syntect", "termion"]
 
 [dev-dependencies]
 assert_cmd = "1.0.1"
-insta = "0.16.1"
-rustc_version = "0.2.3"
-semver = "0.9.0"
+insta = "1"
+rustc_version = "0.4.0"
+semver = "1"
 tempfile = "3.1.0"
