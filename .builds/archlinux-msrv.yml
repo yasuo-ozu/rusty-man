@@ -16,7 +16,7 @@ tasks:
       cargo build --release
   - test: |
       cd rusty-man
-      RUSTY_MAN_GENERATE=1 cargo test
+      cargo test
 triggers:
   - action: email
     condition: failure
