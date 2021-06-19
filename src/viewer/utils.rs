@@ -177,7 +177,9 @@ where
 }
 
 fn is_pre(ts: &RichString) -> bool {
-    ts.tag.iter().any(|tag| matches!(tag, text_renderer::RichAnnotation::Preformat(_)))
+    ts.tag
+        .iter()
+        .any(|tag| matches!(tag, text_renderer::RichAnnotation::Preformat(_)))
 }
 
 #[derive(Clone, Debug, Default)]

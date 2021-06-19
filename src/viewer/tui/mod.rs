@@ -7,7 +7,9 @@ use std::convert;
 
 use anyhow::Context as _;
 use cursive::view::{Resizable as _, Scrollable as _};
-use cursive::views::{Dialog, EditView, LinearLayout, OnEventView, PaddedView, Panel, SelectView, TextView};
+use cursive::views::{
+    Dialog, EditView, LinearLayout, OnEventView, PaddedView, Panel, SelectView, TextView,
+};
 use cursive::{event, theme, utils::markup};
 use cursive_markup::MarkupView;
 
@@ -119,8 +121,8 @@ impl<'s> TuiManRenderer<'s> {
     }
 
     fn into_view(self) -> impl cursive::View {
-        use cursive::With as _;
         use cursive::view::scroll::Scroller as _;
+        use cursive::With as _;
 
         let title = format!("{} {}", self.doc_ty.name(), self.doc_name);
         let scroll = self.layout.scrollable();
@@ -129,18 +131,14 @@ impl<'s> TuiManRenderer<'s> {
             .on_pre_event_inner(event::Key::PageUp, |v, _| {
                 let scroller = v.get_scroller_mut();
                 if scroller.can_scroll_up() {
-                    scroller.scroll_up(
-                        scroller.last_outer_size().y.saturating_sub(1),
-                    );
+                    scroller.scroll_up(scroller.last_outer_size().y.saturating_sub(1));
                 }
                 Some(event::EventResult::Consumed(None))
             })
             .on_pre_event_inner(event::Key::PageDown, |v, _| {
                 let scroller = v.get_scroller_mut();
                 if scroller.can_scroll_down() {
-                    scroller.scroll_down(
-                        scroller.last_outer_size().y.saturating_sub(1),
-                    );
+                    scroller.scroll_down(scroller.last_outer_size().y.saturating_sub(1));
                 }
                 Some(event::EventResult::Consumed(None))
             });
