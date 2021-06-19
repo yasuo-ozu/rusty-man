@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
+// SPDX-FileCopyrightText: 2020-2021 Robin Krahl <robin.krahl@ireas.org>
 // SPDX-License-Identifier: MIT
 
 mod views;
@@ -42,7 +42,7 @@ impl TuiViewer {
         f(&mut renderer)?;
         let view = renderer.into_view();
         s.add_fullscreen_layer(view);
-        s.run();
+        s.try_run_with(create_backend)?;
         Ok(())
     }
 }
@@ -199,8 +199,7 @@ fn create_cursive(
 ) -> anyhow::Result<cursive::Cursive> {
     use cursive::event::{Event, Key};
 
-    let mut cursive =
-        cursive::Cursive::try_new(create_backend).context("Could not create Cursive instance")?;
+    let mut cursive = cursive::Cursive::new();
 
     cursive.set_user_data(Context::new(sources, args)?);
 
