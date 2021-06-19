@@ -2,6 +2,8 @@
 # It is not intended for manual editing.
 # SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
 # SPDX-License-Identifier: CC0-1.0
+version = 3
+
 [[package]]
 name = "adler"
 version = "0.2.3"
@@ -1108,7 +1110,7 @@ dependencies = [
 
 [[package]]
 name = "rusty-man"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "anyhow",
  "assert_cmd",

@@ -5,7 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-# Unreleased
+## v0.4.3 (2021-06-19)
+
+This patch release adds support for Rust 1.53.0 and for non-default target
+directories.
 
 - Prepare supporting multiple parser backends.
 - Read the `$CARGO_TARGET_DIR` and `$CARGO_BUILD_TARGET_DIR` environment

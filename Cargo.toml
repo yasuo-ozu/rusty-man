@@ -1,9 +1,9 @@
-# SPDX-FileCopyrightText: 2020 Robin Krahl <robin.krahl@ireas.org>
+# SPDX-FileCopyrightText: 2020-2021 Robin Krahl <robin.krahl@ireas.org>
 # SPDX-License-Identifier: CC0-1.0
 
 [package]
 name = "rusty-man"
-version = "0.4.2"
+version = "0.4.3"
 authors = ["Robin Krahl <robin.krahl@ireas.org>"]
 edition = "2018"
 description = "Command-line viewer for rustdoc documentation"
