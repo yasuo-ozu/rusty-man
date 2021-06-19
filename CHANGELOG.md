@@ -7,6 +7,7 @@ SPDX-License-Identifier: MIT
 
 ## Unreleased
 
+- Scroll by page on PageUp/PageDown in tui viewer.
 - Bump MSRV to 1.45.0.
 
 ## v0.4.3 (2021-06-19)
