@@ -40,7 +40,7 @@ impl TuiViewer {
         F: Fn(&mut TuiManRenderer) -> Result<(), convert::Infallible>,
     {
         let mut s = create_cursive(sources, args)?;
-        let mut renderer = context(&mut s).create_renderer(&doc);
+        let mut renderer = context(&mut s).create_renderer(doc);
         f(&mut renderer)?;
         let view = renderer.into_view();
         s.add_fullscreen_layer(view);
@@ -341,8 +341,8 @@ fn select_doc_dialog(s: &mut cursive::Cursive, items: Vec<index::IndexItem>) {
 }
 
 fn open_doc(s: &mut cursive::Cursive, doc: &doc::Doc) {
-    let mut renderer = context(s).create_renderer(&doc);
-    renderer.render_doc(&doc).unwrap();
+    let mut renderer = context(s).create_renderer(doc);
+    renderer.render_doc(doc).unwrap();
     let view = renderer.into_view();
     s.add_fullscreen_layer(view);
 }
@@ -434,7 +434,7 @@ fn resolve_doc_link(
                     // part == "type.name.html"
                     ty = Some(part_ty.parse()?);
                     name = if let Some(name) = name {
-                        Some(name.child(&part_name))
+                        Some(name.child(part_name))
                     } else {
                         Some(part_name.to_owned().into())
                     };
@@ -442,7 +442,7 @@ fn resolve_doc_link(
                     // part == "<module>"
                     ty = Some(doc::ItemType::Module);
                     name = if let Some(name) = name {
-                        Some(name.child(&part))
+                        Some(name.child(part))
                     } else {
                         Some(part.to_owned().into())
                     };
@@ -457,7 +457,7 @@ fn resolve_doc_link(
         if let Some((fragment_ty, fragment_name)) = parse_url_part(fragment, None) {
             ty = Some(fragment_ty.parse()?);
             name = if let Some(name) = name {
-                Some(name.child(&fragment_name))
+                Some(name.child(fragment_name))
             } else {
                 Some(fragment_name.to_owned().into())
             };

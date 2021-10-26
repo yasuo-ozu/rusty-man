@@ -71,7 +71,7 @@ impl<'s, 'ss, 't, I: Iterator<Item = &'s str>> Iterator for HighlightedLines<'s,
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|s| self.highlighter.highlight(s, &self.syntax_set))
+            .map(|s| self.highlighter.highlight(s, self.syntax_set))
     }
 }
 
@@ -445,7 +445,7 @@ pub fn get_highlighter(args: &args::ViewerArgs) -> anyhow::Result<Option<Highlig
     if args.no_syntax_highlight {
         Ok(None)
     } else {
-        Highlighter::new(&args).map(Some)
+        Highlighter::new(args).map(Some)
     }
 }
 

@@ -88,19 +88,19 @@ impl DirSource {
     ) -> anyhow::Result<Option<doc::Doc>> {
         if let Some(ty) = ty {
             match ty {
-                doc::ItemType::Module => self.get_module(&path, name),
+                doc::ItemType::Module => self.get_module(path, name),
                 doc::ItemType::StructField
                 | doc::ItemType::Variant
                 | doc::ItemType::AssocType
                 | doc::ItemType::AssocConst
-                | doc::ItemType::Method => self.get_member(&path, name),
-                _ => self.get_item(&path, name),
+                | doc::ItemType::Method => self.get_member(path, name),
+                _ => self.get_item(path, name),
             }
         } else {
-            self.get_item(&path, name)
+            self.get_item(path, name)
                 .transpose()
-                .or_else(|| self.get_module(&path, name).transpose())
-                .or_else(|| self.get_member(&path, name).transpose())
+                .or_else(|| self.get_module(path, name).transpose())
+                .or_else(|| self.get_member(path, name).transpose())
                 .transpose()
         }
     }

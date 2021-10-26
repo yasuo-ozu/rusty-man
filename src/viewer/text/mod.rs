@@ -68,7 +68,7 @@ pub fn spawn_pager(args: &args::ViewerArgs) {
         env::set_var("LESS", "cR");
     }
     let mut pager = if let Some(pager) = &args.pager {
-        pager::Pager::with_pager(&pager)
+        pager::Pager::with_pager(pager)
     } else {
         pager::Pager::with_default_pager("less")
     };

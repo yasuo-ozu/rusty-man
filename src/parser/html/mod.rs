@@ -447,7 +447,7 @@ fn get_method_groups(
             if let Some(title) = subheading.first_child() {
                 if let Some(impl_items) = subheading.next_sibling() {
                     if let Some(group) =
-                        get_impl_items(parent, &title, &impl_items, ty, &subheading_type)?
+                        get_impl_items(parent, &title, &impl_items, ty, subheading_type)?
                     {
                         groups.push(group);
                     }
@@ -463,7 +463,7 @@ fn get_method_groups(
             if let Some(title) = h3.and_then(|n| n.first_child()) {
                 if let Some(impl_items) = summary.and_then(|n| n.next_sibling()) {
                     if let Some(group) =
-                        get_impl_items(parent, &title, &impl_items, ty, &subheading_type)?
+                        get_impl_items(parent, &title, &impl_items, ty, subheading_type)?
                     {
                         groups.push(group);
                     }
@@ -486,7 +486,7 @@ fn get_impl_items(
 ) -> anyhow::Result<Option<doc::MemberGroup>> {
     let title = title.text_contents();
     if impl_items.is_element(&local_name!("div")) && impl_items.has_class("impl-items") {
-        get_method_group(parent, Some(title), &impl_items, ty, &subheading_type)
+        get_method_group(parent, Some(title), impl_items, ty, subheading_type)
     } else {
         Ok(None)
     }

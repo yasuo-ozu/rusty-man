@@ -235,7 +235,7 @@ impl Index {
                     None => path.to_owned(),
                 };
                 let full_name: doc::Fqn = format!("{}::{}", &full_path, &item.name).into();
-                if full_name.ends_with(&name) {
+                if full_name.ends_with(name) {
                     log::info!("Found index match '{}'", full_name);
                     matches.push(IndexItem {
                         name: full_name,
