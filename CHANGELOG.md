@@ -5,7 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-## Unreleased
+## v0.5.0 (2021-10-26)
+
+This minor release adds support for Rust 1.54.0, 1.55.0 and 1.56.0 and bumps
+the MSRV to 1.45.0.
 
 - Scroll by page on PageUp/PageDown in tui viewer.
 - Bump MSRV to 1.45.0.
