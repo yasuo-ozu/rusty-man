@@ -1,0 +1,164 @@
+---
+source: tests/output.rs
+expression: "get_stdout(path, &[\"rand_core::block::BlockRng\"])"
+
+---
+rand_core                         Struct rand_core::block::BlockRng                        rusty-man
+
+SYNOPSIS
+      pub struct BlockRng<R: BlockRngCore + ?Sized> {
+          pub core: R,
+          // some fields omitted
+      }
+
+DESCRIPTION
+      A wrapper type implementing `RngCore` for some type implementing `BlockRngCore` with `u32`
+      array buffer; i.e. this can be used to implement a full RNG from just a `generate` function.
+      
+      The `core` field may be accessed directly but the results buffer may not. PRNG implementations
+      can simply use a type alias (`pub type MyRng = BlockRng<MyRngCore>;`) but might prefer to use
+      a wrapper type (`pub struct MyRng(BlockRng<MyRngCore>);`); the latter must re-implement
+      `RngCore` but hides the implementation details and allows extra functionality to be defined on
+      the RNG (e.g. `impl MyRng { fn set_stream(...){...} }`).
+      
+      `BlockRng` has heavily optimized implementations of the `RngCore` methods reading values from
+      the results buffer, as well as calling `BlockRngCore::generate` directly on the output array
+      when `fill_bytes` / `try_fill_bytes` is called on a large array. These methods also handle the
+      bookkeeping of when to generate a new batch of values.
+      
+      No whole generated `u32` values are thown away and all values are consumed in-order.
+      `next_u32` simply takes the next available `u32` value. `next_u64` is implemented by combining
+      two `u32` values, least significant first. `fill_bytes` and `try_fill_bytes` consume a whole
+      number of `u32` values, converting each `u32` to a byte slice in little-endian order. If the
+      requested byte length is not a multiple of 4, some bytes will be discarded.
+      
+      See also `BlockRng64` which uses `u64` array buffers. Currently there is no direct support for
+      other buffer types.
+      
+      For easy initialization `BlockRng` also implements `SeedableRng`.
+
+FIELDS
+      core
+            core: R
+
+            The *core* part of the RNG, implementing the `generate` function.
+
+METHODS
+   impl<R: BlockRngCore> BlockRng<R>
+      new
+            pub fn new(core: R) -> BlockRng<R>
+
+            Create a new `BlockRng` from an existing RNG implementing `BlockRngCore`. Results will
+            be generated on first use.
+
+      index
+            pub fn index(&self) -> usize
+
+            Get the index into the result buffer.
+            
+            If this is equal to or larger than the size of the result buffer then the buffer is
+            “empty” and `generate()` must be called to produce new results.
+
+      reset
+            pub fn reset(&mut self)
+
+            Reset the number of available results. This will force a new set of results to be
+            generated on next use.
+
+      generate_and_set
+            pub fn generate_and_set(&mut self, index: usize)
+
+            Generate a new set of results immediately, setting the index to the given value.
+
+IMPLEMENTATIONS
+   Trait Implementations
+      BlockRngCore
+            impl<R: BlockRngCore + CryptoRng> CryptoRng for BlockRng<R>
+
+      BlockRngCore
+            impl<R: BlockRngCore + Debug> Debug for BlockRng<R>
+
+      BlockRngCore
+            impl<R: BlockRngCore + SeedableRng> SeedableRng for BlockRng<R>
+
+      BlockRngCore
+            impl<R: BlockRngCore<Item = u32>> RngCore for BlockRng<R> 
+            where
+                <R as BlockRngCore>::Results: AsRef<[u32]> + AsMut<[u32]>,
+
+      Clone
+            impl<R: Clone + BlockRngCore + ?Sized> Clone for BlockRng<R> 
+            where
+                R::Results: Clone,
+
+   Auto Trait Implementations
+      Sized
+            impl<R: ?Sized> RefUnwindSafe for BlockRng<R> 
+            where
+                R: RefUnwindSafe,
+                <R as BlockRngCore>::Results: RefUnwindSafe,
+
+      Sized
+            impl<R: ?Sized> Send for BlockRng<R> 
+            where
+                R: Send,
+                <R as BlockRngCore>::Results: Send,
+
+      Sized
+            impl<R: ?Sized> Sync for BlockRng<R> 
+            where
+                R: Sync,
+                <R as BlockRngCore>::Results: Sync,
+
+      Sized
+            impl<R: ?Sized> Unpin for BlockRng<R> 
+            where
+                R: Unpin,
+                <R as BlockRngCore>::Results: Unpin,
+
+      Sized
+            impl<R: ?Sized> UnwindSafe for BlockRng<R> 
+            where
+                R: UnwindSafe,
+                <R as BlockRngCore>::Results: UnwindSafe,
+
+   Blanket Implementations
+      Any
+            impl<T> Any for T 
+            where
+                T: 'static + ?Sized,
+
+      Borrow
+            impl<T> Borrow<T> for T 
+            where
+                T: ?Sized,
+
+      BorrowMut
+            impl<T> BorrowMut<T> for T 
+            where
+                T: ?Sized,
+
+      From
+            impl<T> From<T> for T
+
+      Into
+            impl<T, U> Into<U> for T 
+            where
+                U: From<T>,
+
+      ToOwned
+            impl<T> ToOwned for T 
+            where
+                T: Clone,
+
+      TryFrom
+            impl<T, U> TryFrom<U> for T 
+            where
+                U: Into<T>,
+
+      TryInto
+            impl<T, U> TryInto<U> for T 
+            where
+                U: TryFrom<T>,
+
+

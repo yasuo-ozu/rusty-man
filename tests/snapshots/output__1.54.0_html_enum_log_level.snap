@@ -1,0 +1,186 @@
+---
+source: tests/output.rs
+expression: "get_stdout(path, &[\"log::Level\"])"
+
+---
+log                                        Enum log::Level                                 rusty-man
+
+SYNOPSIS
+      #[repr(usize)]
+      pub enum Level {
+          Error,
+          Warn,
+          Info,
+          Debug,
+          Trace,
+      }
+
+DESCRIPTION
+      An enum representing the available verbosity levels of the logger.
+      
+      Typical usage includes: checking if a certain `Level` is enabled with `log_enabled!`,
+      specifying the `Level` of `log!`, and comparing a `Level` directly to a `LevelFilter`.
+
+VARIANTS
+      Error
+            Error
+
+            The “error” level.
+            
+            Designates very serious errors.
+
+      Warn
+            Warn
+
+            The “warn” level.
+            
+            Designates hazardous situations.
+
+      Info
+            Info
+
+            The “info” level.
+            
+            Designates useful information.
+
+      Debug
+            Debug
+
+            The “debug” level.
+            
+            Designates lower priority information.
+
+      Trace
+            Trace
+
+            The “trace” level.
+            
+            Designates very low priority, often extremely verbose, information.
+
+METHODS
+   impl Level
+      max
+            pub fn max() -> Level
+
+            Returns the most verbose logging level.
+
+      to_level_filter
+            pub fn to_level_filter(&self) -> LevelFilter
+
+            Converts the `Level` to the equivalent `LevelFilter`.
+
+      as_str
+            pub fn as_str(&self) -> &'static str
+
+            Returns the string representation of the `Level`.
+            
+            This returns the same string as the `fmt::Display` implementation.
+
+IMPLEMENTATIONS
+   Trait Implementations
+      Clone
+            impl Clone for Level
+
+      Copy
+            impl Copy for Level
+
+      Debug
+            impl Debug for Level
+
+      Display
+            impl Display for Level
+
+      Eq
+            impl Eq for Level
+
+      FromStr
+            impl FromStr for Level
+
+      Hash
+            impl Hash for Level
+
+      Ord
+            impl Ord for Level
+
+      PartialEq
+            impl PartialEq<Level> for Level
+
+      PartialEq
+            impl PartialEq<Level> for LevelFilter
+
+      PartialEq
+            impl PartialEq<LevelFilter> for Level
+
+      PartialOrd
+            impl PartialOrd<Level> for Level
+
+      PartialOrd
+            impl PartialOrd<Level> for LevelFilter
+
+      PartialOrd
+            impl PartialOrd<LevelFilter> for Level
+
+      StructuralEq
+            impl StructuralEq for Level
+
+   Auto Trait Implementations
+      RefUnwindSafe
+            impl RefUnwindSafe for Level
+
+      Send
+            impl Send for Level
+
+      Sync
+            impl Sync for Level
+
+      Unpin
+            impl Unpin for Level
+
+      UnwindSafe
+            impl UnwindSafe for Level
+
+   Blanket Implementations
+      Any
+            impl<T> Any for T 
+            where
+                T: 'static + ?Sized,
+
+      Borrow
+            impl<T> Borrow<T> for T 
+            where
+                T: ?Sized,
+
+      BorrowMut
+            impl<T> BorrowMut<T> for T 
+            where
+                T: ?Sized,
+
+      From
+            impl<T> From<T> for T
+
+      Into
+            impl<T, U> Into<U> for T 
+            where
+                U: From<T>,
+
+      ToOwned
+            impl<T> ToOwned for T 
+            where
+                T: Clone,
+
+      ToString
+            impl<T> ToString for T 
+            where
+                T: Display + ?Sized,
+
+      TryFrom
+            impl<T, U> TryFrom<U> for T 
+            where
+                U: Into<T>,
+
+      TryInto
+            impl<T, U> TryInto<U> for T 
+            where
+                U: TryFrom<T>,
+
+

@@ -1,0 +1,35 @@
+---
+source: tests/output.rs
+expression: "get_stdout(path, &[\"anyhow::anyhow\"])"
+
+---
+anyhow                                  Macro anyhow::anyhow                               rusty-man
+
+SYNOPSIS
+      macro_rules! anyhow {
+          ($msg : literal $(,) ?) => { ... };
+          ($err : expr $(,) ?) => { ... };
+          ($fmt : expr, $($arg : tt) *) => { ... };
+      }
+
+DESCRIPTION
+      Construct an ad-hoc error from a string or existing non-`anyhow` error value.
+      
+      This evaluates to an `Error`. It can take either just a string, or a format string with
+      arguments. It also can take any custom type which implements `Debug` and `Display`.
+      
+      If called with a single argument whose type implements `std::error::Error` (in addition to
+      `Debug` and `Display`, which are always required), then that Error impl’s `source` is
+      preserved as the `source` of the resulting `anyhow::Error`.
+      
+      # Example
+      
+      use anyhow::{anyhow, Result};
+      fn lookup(key: &str) -> Result<V> {
+          if key.len() != 16 {
+              return Err(anyhow!("key length must be 16 characters, got {:?}", key));
+          }
+          // ...
+      }
+
+

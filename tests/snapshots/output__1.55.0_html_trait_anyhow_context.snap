@@ -1,0 +1,120 @@
+---
+source: tests/output.rs
+expression: "get_stdout(path, &[\"anyhow::Context\"])"
+
+---
+anyhow                                  Trait anyhow::Context                              rusty-man
+
+SYNOPSIS
+      pub trait Context<T, E>: Sealed {
+          fn context<C>(self, context: C) -> Result<T, Error>
+          where
+              C: Display + Send + Sync + 'static;
+          fn with_context<C, F>(self, f: F) -> Result<T, Error>
+          where
+              C: Display + Send + Sync + 'static,
+              F: FnOnce() -> C;
+      }
+
+DESCRIPTION
+      Provides the `context` method for `Result`.
+      
+      This trait is sealed and cannot be implemented for types outside of `anyhow`.
+      
+      
+      # Example
+      
+      use anyhow::{Context, Result};
+      use std::fs;
+      use std::path::PathBuf;
+      pub struct ImportantThing {
+          path: PathBuf,
+      }
+      impl ImportantThing {
+          pub fn detach(&mut self) -> Result<()> {...}
+      }
+      pub fn do_it(mut it: ImportantThing) -> Result<Vec<u8>> {
+          it.detach().context("Failed to detach the important thing")?;
+          let path = &it.path;
+          let content = fs::read(path)
+              .with_context(|| format!("Failed to read instrs from {}", path.display()))?;
+          Ok(content)
+      }
+      
+      When printed, the outermost context would be printed first and the lower level underlying
+      causes would be enumerated below.
+      
+      Error: Failed to read instrs from ./path/to/instrs.json
+      Caused by:
+          No such file or directory (os error 2)
+      
+      
+      
+      # Effect on downcasting
+      
+      After attaching context of type `C` onto an error of type `E`, the resulting `anyhow::Error`
+      may be downcast to `C` **or** to `E`.
+      
+      That is, in codebases that rely on downcasting, Anyhow’s context supports both of the
+      following use cases:
+      
+      * **Attaching context whose type is insignificant onto errors whose type is used in
+        downcasts.**
+        
+        In other error libraries whose context is not designed this way, it can be risky to
+        introduce context to existing code because new context might break existing working
+        downcasts. In Anyhow, any downcast that worked before adding context will continue to work
+        after you add a context, so you should freely add human-readable context to errors wherever
+        it would be helpful.
+        
+        use anyhow::{Context, Result};
+        fn do_it() -> Result<()> {
+            helper().context("Failed to complete the work")?;
+            ...
+        }
+        fn main() {
+            let err = do_it().unwrap_err();
+            if let Some(e) = err.downcast_ref::<SuspiciousError>() {
+                // If helper() returned SuspiciousError, this downcast will
+                // correctly succeed even with the context in between.
+            }
+        }
+      * **Attaching context whose type is used in downcasts onto errors whose type is
+        insignificant.**
+        
+        Some codebases prefer to use machine-readable context to categorize lower level errors in a
+        way that will be actionable to higher levels of the application.
+        
+        use anyhow::{Context, Result};
+        fn do_it() -> Result<()> {
+            helper().context(HelperFailed)?;
+            ...
+        }
+        fn main() {
+            let err = do_it().unwrap_err();
+            if let Some(e) = err.downcast_ref::<HelperFailed>() {
+                // If helper failed, this downcast will succeed because
+                // HelperFailed is the context that has been attached to
+                // that error.
+            }
+        }
+
+METHODS
+   Required Methods
+      context
+            fn context<C>(self, context: C) -> Result<T, Error> 
+            where
+                C: Display + Send + Sync + 'static,
+
+            Wrap the error value with additional context.
+
+      with_context
+            fn with_context<C, F>(self, f: F) -> Result<T, Error> 
+            where
+                C: Display + Send + Sync + 'static,
+                F: FnOnce() -> C,
+
+            Wrap the error value with additional context that is evaluated lazily only once an error
+            does occur.
+
+

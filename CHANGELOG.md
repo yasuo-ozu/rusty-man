@@ -9,6 +9,7 @@ SPDX-License-Identifier: MIT
 
 - Scroll by page on PageUp/PageDown in tui viewer.
 - Bump MSRV to 1.45.0.
+- Add support and tests for Rust 1.54.0, 1.55.0 and 1.56.0.
 
 ## v0.4.3 (2021-06-19)
 

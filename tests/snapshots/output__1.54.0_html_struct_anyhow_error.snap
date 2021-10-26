@@ -1,0 +1,356 @@
+---
+source: tests/output.rs
+expression: "get_stdout(path, &[\"anyhow::Error\"])"
+---
+anyhow                                  Struct anyhow::Error                               rusty-man
+
+SYNOPSIS
+      pub struct Error { /* fields omitted */ }
+
+DESCRIPTION
+      The `Error` type, a wrapper around a dynamic error type.
+      
+      `Error` works a lot like `Box<dyn std::error::Error>`, but with these differences:
+      
+      * `Error` requires that the error is `Send`, `Sync`, and `'static`.
+      * `Error` guarantees that a backtrace is available, even if the underlying error type does not
+        provide one.
+      * `Error` is represented as a narrow pointer — exactly one word in size instead of two.
+      
+      
+      
+      # Display representations
+      
+      When you print an error object using "{}" or to_string(), only the outermost underlying error
+      or context is printed, not any of the lower level causes. This is exactly as if you had called
+      the Display impl of the error from which you constructed your anyhow::Error.
+      
+      `Failed to read instrs from ./path/to/instrs.json
+      `
+      
+      To print causes as well using anyhow's default formatting of causes, use the alternate
+      selector "{:#}".
+      
+      `Failed to read instrs from ./path/to/instrs.json: No such file or directory (os error 2)
+      `
+      
+      The Debug format "{:?}" includes your backtrace if one was captured. Note that this is the
+      representation you get by default if you return an error from `fn main` instead of printing it
+      explicitly yourself.
+      
+      `Error: Failed to read instrs from ./path/to/instrs.json
+      Caused by:
+          No such file or directory (os error 2)
+      `
+      
+      and if there is a backtrace available:
+      
+      `Error: Failed to read instrs from ./path/to/instrs.json
+      Caused by:
+          No such file or directory (os error 2)
+      Stack backtrace:
+         0: <E as anyhow::context::ext::StdError>::ext_context
+                   at /git/anyhow/src/backtrace.rs:26
+         1: core::result::Result<T,E>::map_err
+                   at /git/rustc/src/libcore/result.rs:596
+         2: anyhow::context::<impl anyhow::Context<T,E> for core::result::Result<T,E>>::with_context
+                   at /git/anyhow/src/context.rs:58
+         3: testing::main
+                   at src/main.rs:5
+         4: std::rt::lang_start
+                   at /git/rustc/src/libstd/rt.rs:61
+         5: main
+         6: __libc_start_main
+         7: _start
+      `
+      
+      To see a conventional struct-style Debug representation, use "{:#?}".
+      
+      `Error {
+          context: "Failed to read instrs from ./path/to/instrs.json",
+          source: Os {
+              code: 2,
+              kind: NotFound,
+              message: "No such file or directory",
+          },
+      }
+      `
+      
+      If none of the built-in representations are appropriate and you would prefer to render the
+      error and its cause chain yourself, it can be done something like this:
+      
+      use anyhow::{Context, Result};
+      fn main() {
+          if let Err(err) = try_main() {
+              eprintln!("ERROR: {}", err);
+              err.chain().skip(1).for_each(|cause| eprintln!("because: {}", cause));
+              std::process::exit(1);
+          }
+      }
+      fn try_main() -> Result<()> {
+          ...
+      }
+
+METHODS
+   impl Error
+      new
+            pub fn new<E>(error: E) -> Self 
+            where
+                E: StdError + Send + Sync + 'static,
+
+            Create a new error object from any error type.
+            
+            The error type must be threadsafe and `'static`, so that the `Error` will be as well.
+            
+            If the error type does not provide a backtrace, a backtrace will be created here to
+            ensure that a backtrace exists.
+
+      msg
+            pub fn msg<M>(message: M) -> Self 
+            where
+                M: Display + Debug + Send + Sync + 'static,
+
+            Create a new error object from a printable error message.
+            
+            If the argument implements std::error::Error, prefer `Error::new` instead which
+            preserves the underlying error's cause chain and backtrace. If the argument may or may
+            not implement std::error::Error now or in the future, use `anyhow!(err)` which handles
+            either way correctly.
+            
+            `Error::msg("...")` is equivalent to `anyhow!("...")` but occasionally convenient in
+            places where a function is preferable over a macro, such as iterator or stream
+            combinators:
+            
+            use anyhow::{Error, Result};
+            use futures::stream::{Stream, StreamExt, TryStreamExt};
+            async fn demo<S>(stream: S) -> Result<Vec<Output>>
+            where
+                S: Stream<Item = Input>,
+            {
+                stream
+                    .then(ffi::do_some_work) // returns Result<Output, &str>
+                    .map_err(Error::msg)
+                    .try_collect()
+                    .await
+            }
+
+      context
+            pub fn context<C>(self, context: C) -> Self 
+            where
+                C: Display + Send + Sync + 'static,
+
+            Wrap the error value with additional context.
+            
+            For attaching context to a `Result` as it is propagated, the `Context` extension trait
+            may be more convenient than this function.
+            
+            The primary reason to use `error.context(...)` instead of `result.context(...)` via the
+            `Context` trait would be if the context needs to depend on some data held by the
+            underlying error:
+            
+            use anyhow::Result;
+            use std::fs::File;
+            use std::path::Path;
+            struct ParseError {
+                line: usize,
+                column: usize,
+            }
+            fn parse_impl(file: File) -> Result<T, ParseError> {
+                ...
+            }
+            pub fn parse(path: impl AsRef<Path>) -> Result<T> {
+                let file = File::open(&path)?;
+                parse_impl(file).map_err(|error| {
+                    let context = format!(
+                        "only the first {} lines of {} are valid",
+                        error.line, path.as_ref().display(),
+                    );
+                    anyhow::Error::new(error).context(context)
+                })
+            }
+
+      chain
+            pub fn chain(&self) -> Chain<'_>
+
+            An iterator of the chain of source errors contained by this Error.
+            
+            This iterator will visit every error in the cause chain of this error object, beginning
+            with the error that this error object was created from.
+            
+            # Example
+            
+            use anyhow::Error;
+            use std::io;
+            pub fn underlying_io_error_kind(error: &Error) -> Option<io::ErrorKind> {
+                for cause in error.chain() {
+                    if let Some(io_error) = cause.downcast_ref::<io::Error>() {
+                        return Some(io_error.kind());
+                    }
+                }
+                None
+            }
+
+      root_cause
+            pub fn root_cause(&self) -> &(dyn StdError + 'static)
+
+            The lowest level cause of this error — this error's cause's cause's cause etc.
+            
+            The root cause is the last error in the iterator produced by `chain()`.
+
+      is
+            pub fn is<E>(&self) -> bool 
+            where
+                E: Display + Debug + Send + Sync + 'static,
+
+            Returns true if `E` is the type held by this error object.
+            
+            For errors with context, this method returns true if `E` matches the type of the context
+            `C` **or** the type of the error on which the context has been attached. For details
+            about the interaction between context and downcasting, see here.
+
+      downcast
+            pub fn downcast<E>(self) -> Result<E, Self> 
+            where
+                E: Display + Debug + Send + Sync + 'static,
+
+            Attempt to downcast the error object to a concrete type.
+
+      downcast_ref
+            pub fn downcast_ref<E>(&self) -> Option<&E> 
+            where
+                E: Display + Debug + Send + Sync + 'static,
+
+            Downcast this error object by reference.
+            
+            # Example
+            
+            // If the error was caused by redaction, then return a tombstone instead
+            // of the content.
+            match root_cause.downcast_ref::<DataStoreError>() {
+                Some(DataStoreError::Censored(_)) => Ok(Poll::Ready(REDACTED_CONTENT)),
+                None => Err(error),
+            }
+
+      downcast_mut
+            pub fn downcast_mut<E>(&mut self) -> Option<&mut E> 
+            where
+                E: Display + Debug + Send + Sync + 'static,
+
+            Downcast this error object by mutable reference.
+
+   Methods from Deref<Target = dyn StdError + Send + Sync + 'static>
+      is
+            pub fn is<T>(&self) -> bool 
+            where
+                T: 'static + Error,
+
+            Returns `true` if the boxed type is the same as `T`
+
+      downcast_ref
+            pub fn downcast_ref<T>(&self) -> Option<&T> 
+            where
+                T: 'static + Error,
+
+            Returns some reference to the boxed value if it is of type `T`, or `None` if it isn't.
+
+      downcast_mut
+            pub fn downcast_mut<T>(&mut self) -> Option<&mut T> 
+            where
+                T: 'static + Error,
+
+            Returns some mutable reference to the boxed value if it is of type `T`, or `None` if it
+            isn't.
+
+IMPLEMENTATIONS
+   Trait Implementations
+      AsRef
+            impl AsRef<dyn Error + 'static + Sync + Send> for Error
+
+      AsRef
+            impl AsRef<dyn Error + 'static> for Error
+
+      Debug
+            impl Debug for Error
+
+      Deref
+            impl Deref for Error
+
+      DerefMut
+            impl DerefMut for Error
+
+      Display
+            impl Display for Error
+
+      Drop
+            impl Drop for Error
+
+      From
+            impl From<Error> for Box<dyn StdError + 'static>
+
+      From
+            impl From<Error> for Box<dyn StdError + Send + Sync + 'static>
+
+      From
+            impl<E> From<E> for Error 
+            where
+                E: StdError + Send + Sync + 'static,
+
+   Auto Trait Implementations
+      RefUnwindSafe
+            impl RefUnwindSafe for Error
+
+      Send
+            impl Send for Error
+
+      Sync
+            impl Sync for Error
+
+      Unpin
+            impl Unpin for Error
+
+      UnwindSafe
+            impl UnwindSafe for Error
+
+   Blanket Implementations
+      Any
+            impl<T> Any for T 
+            where
+                T: 'static + ?Sized,
+
+      Borrow
+            impl<T> Borrow<T> for T 
+            where
+                T: ?Sized,
+
+      BorrowMut
+            impl<T> BorrowMut<T> for T 
+            where
+                T: ?Sized,
+
+      From
+            impl<T> From<!> for T
+
+      From
+            impl<T> From<T> for T
+
+      Into
+            impl<T, U> Into<U> for T 
+            where
+                U: From<T>,
+
+      ToString
+            impl<T> ToString for T 
+            where
+                T: Display + ?Sized,
+
+      TryFrom
+            impl<T, U> TryFrom<U> for T 
+            where
+                U: Into<T>,
+
+      TryInto
+            impl<T, U> TryInto<U> for T 
+            where
+                U: TryFrom<T>,
+
+

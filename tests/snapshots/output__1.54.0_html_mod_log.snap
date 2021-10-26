@@ -1,0 +1,300 @@
+---
+source: tests/output.rs
+expression: "get_stdout(path, &[\"log\"])"
+
+---
+log                                          Module log                                    rusty-man
+
+DESCRIPTION
+      A lightweight logging facade.
+      
+      The `log` crate provides a single logging API that abstracts over the actual logging
+      implementation. Libraries can use the logging API provided by this crate, and the consumer of
+      those libraries can choose the logging implementation that is most suitable for its use case.
+      
+      If no logging implementation is selected, the facade falls back to a “noop” implementation
+      that ignores all log messages. The overhead in this case is very small - just an integer load,
+      comparison and jump.
+      
+      A log request consists of a *target*, a *level*, and a *body*. A target is a string which
+      defaults to the module path of the location of the log request, though that default may be
+      overridden. Logger implementations typically use the target to filter requests based on some
+      user configuration.
+      
+      # Use
+      
+      The basic use of the log crate is through the five logging macros: `error!`, `warn!`, `info!`,
+      `debug!` and `trace!` where `error!` represents the highest-priority log messages and `trace!`
+      the lowest. The log messages are filtered by configuring the log level to exclude messages
+      with a lower priority. Each of these macros accept format strings similarly to
+      [`println!`][1].
+      
+      ## In libraries
+      
+      Libraries should link only to the `log` crate, and use the provided macros to log whatever
+      information will be useful to downstream consumers.
+      
+      ### Examples
+      
+      ⓘ
+      use log::{info, warn};
+      pub fn shave_the_yak(yak: &mut Yak) {
+          info!(target: "yak_events", "Commencing yak shaving for {:?}", yak);
+          loop {
+              match find_a_razor() {
+                  Ok(razor) => {
+                      info!("Razor located: {}", razor);
+                      yak.shave(razor);
+                      break;
+                  }
+                  Err(err) => {
+                      warn!("Unable to locate a razor: {}, retrying", err);
+                  }
+              }
+          }
+      }
+      
+      
+      ## In executables
+      
+      Executables should choose a logging implementation and initialize it early in the runtime of
+      the program. Logging implementations will typically include a function to do this. Any log
+      messages generated before the implementation is initialized will be ignored.
+      
+      The executable itself may use the `log` crate to log as well.
+      
+      ### Warning
+      
+      The logging system may only be initialized once.
+      
+      # Available logging implementations
+      
+      In order to produce log output executables have to use a logger implementation compatible with
+      the facade. There are many available implementations to choose from, here are some of the most
+      popular ones:
+      
+      * Simple minimal loggers:
+        
+        * [env_logger][1]
+          
+          [1] https://docs.rs/env_logger/*/env_logger/
+        * [simple_logger][1]
+          
+          [1] https://github.com/borntyping/rust-simple_logger
+        * [simplelog][1]
+          
+          [1] https://github.com/drakulix/simplelog.rs
+        * [pretty_env_logger][1]
+          
+          [1] https://docs.rs/pretty_env_logger/*/pretty_env_logger/
+        * [stderrlog][1]
+          
+          [1] https://docs.rs/stderrlog/*/stderrlog/
+        * [flexi_logger][1]
+          
+          [1] https://docs.rs/flexi_logger/*/flexi_logger/
+      * Complex configurable frameworks:
+        
+        * [log4rs][1]
+          
+          [1] https://docs.rs/log4rs/*/log4rs/
+        * [fern][1]
+          
+          [1] https://docs.rs/fern/*/fern/
+      * Adaptors for other facilities:
+        
+        * [syslog][1]
+          
+          [1] https://docs.rs/syslog/*/syslog/
+        * [slog-stdlog][1]
+          
+          [1] https://docs.rs/slog-stdlog/*/slog_stdlog/
+      
+      
+      # Implementing a Logger
+      
+      Loggers implement the `Log` trait. Here’s a very basic example that simply logs all messages
+      at the `Error`, `Warn` or `Info` levels to stdout:
+      
+      ⓘ
+      use log::{Record, Level, Metadata};
+      struct SimpleLogger;
+      impl log::Log for SimpleLogger {
+          fn enabled(&self, metadata: &Metadata) -> bool {
+              metadata.level() <= Level::Info
+          }
+          fn log(&self, record: &Record) {
+              if self.enabled(record.metadata()) {
+                  println!("{} - {}", record.level(), record.args());
+              }
+          }
+          fn flush(&self) {}
+      }
+      
+      Loggers are installed by calling the `set_logger` function. The maximum log level also needs
+      to be adjusted via the `set_max_level` function. The logging facade uses this as an
+      optimization to improve performance of log messages at levels that are disabled. It’s
+      important to set it, as it defaults to `Off`, so no log messages will ever be captured! In the
+      case of our example logger, we’ll want to set the maximum log level to `Info`, since we ignore
+      any `Debug` or `Trace` level log messages. A logging implementation should provide a function
+      that wraps a call to `set_logger` and `set_max_level`, handling initialization of the logger:
+      
+      ⓘ
+      use log::{SetLoggerError, LevelFilter};
+      static LOGGER: SimpleLogger = SimpleLogger;
+      pub fn init() -> Result<(), SetLoggerError> {
+          log::set_logger(&LOGGER)
+              .map(|()| log::set_max_level(LevelFilter::Info))
+      }
+      
+      Implementations that adjust their configurations at runtime should take care to adjust the
+      maximum log level as well.
+      
+      # Use with `std`
+      
+      `set_logger` requires you to provide a `&'static Log`, which can be hard to obtain if your
+      logger depends on some runtime configuration. The `set_boxed_logger` function is available
+      with the `std` Cargo feature. It is identical to `set_logger` except that it takes a
+      `Box<Log>` rather than a `&'static Log`:
+      
+      ⓘ
+      pub fn init() -> Result<(), SetLoggerError> {
+          log::set_boxed_logger(Box::new(SimpleLogger))
+              .map(|()| log::set_max_level(LevelFilter::Info))
+      }
+      
+      
+      # Compile time filters
+      
+      Log levels can be statically disabled at compile time via Cargo features. Log invocations at
+      disabled levels will be skipped and will not even be present in the resulting binary. This
+      level is configured separately for release and debug builds. The features are:
+      
+      * `max_level_off`
+      * `max_level_error`
+      * `max_level_warn`
+      * `max_level_info`
+      * `max_level_debug`
+      * `max_level_trace`
+      * `release_max_level_off`
+      * `release_max_level_error`
+      * `release_max_level_warn`
+      * `release_max_level_info`
+      * `release_max_level_debug`
+      * `release_max_level_trace`
+      
+      These features control the value of the `STATIC_MAX_LEVEL` constant. The logging macros check
+      this value before logging a message. By default, no levels are disabled.
+      
+      Libraries should avoid using the max level features because they’re global and can’t be
+      changed once they’re set.
+      
+      For example, a crate can disable trace level logs in debug builds and trace, debug, and info
+      level logs in release builds with the following configuration:
+      
+      `[dependencies]
+      log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
+      `
+      
+      
+      # Crate Feature Flags
+      
+      The following crate feature flags are available in addition to the filters. They are
+      configured in your `Cargo.toml`.
+      
+      * `std` allows use of `std` crate instead of the default `core`. Enables using `std::error`
+        and `set_boxed_logger` functionality.
+      * `serde` enables support for serialization and deserialization of `Level` and `LevelFilter`.
+      `[dependencies]
+      log = { version = "0.4", features = ["std", "serde"] }
+      `
+      
+      
+      # Version compatibility
+      
+      The 0.3 and 0.4 versions of the `log` crate are almost entirely compatible. Log messages made
+      using `log` 0.3 will forward transparently to a logger implementation using `log` 0.4. Log
+      messages made using `log` 0.4 will forward to a logger implementation using `log` 0.3, but the
+      module path and file name information associated with the message will unfortunately be lost.
+      
+      [1] https://doc.rust-lang.org/stable/std/macro.println.html
+
+MACROS
+      debug
+            Logs a message at the debug level.
+
+      error
+            Logs a message at the error level.
+
+      info
+            Logs a message at the info level.
+
+      log
+            The standard logging macro.
+
+      log_enabled
+            Determines if a message logged at the specified level in that module will be logged.
+
+      trace
+            Logs a message at the trace level.
+
+      warn
+            Logs a message at the warn level.
+
+STRUCTS
+      Metadata
+            Metadata about a log message.
+
+      MetadataBuilder
+            Builder for `Metadata`.
+
+      ParseLevelError
+            The type returned by [`from_str`][1] when the string doesn’t match any of the log
+            levels.
+            
+            [1] https://doc.rust-lang.org/std/str/trait.FromStr.html#tymethod.from_str
+
+      Record
+            The “payload” of a log message.
+
+      RecordBuilder
+            Builder for `Record`.
+
+      SetLoggerError
+            The type returned by `set_logger` if `set_logger` has already been called.
+
+ENUMS
+      Level
+            An enum representing the available verbosity levels of the logger.
+
+      LevelFilter
+            An enum representing the available verbosity level filters of the logger.
+
+CONSTANTS
+      STATIC_MAX_LEVEL
+            The statically resolved maximum log level.
+
+TRAITS
+      Log
+            A trait encapsulating the operations required of a logger.
+
+FUNCTIONS
+      logger
+            Returns a reference to the logger.
+
+      max_level
+            Returns the current maximum log level.
+
+      set_boxed_logger
+            Sets the global logger to a `Box<Log>`.
+
+      set_logger
+            Sets the global logger to a `&'static Log`.
+
+      set_logger_racy
+            A thread-unsafe version of `set_logger`.
+
+      set_max_level
+            Sets the global maximum log level.
+
+
