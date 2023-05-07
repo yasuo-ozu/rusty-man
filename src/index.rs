@@ -16,6 +16,7 @@
 
 mod v1_44;
 mod v1_52;
+mod v1_69;
 
 use std::collections;
 use std::fmt;
@@ -77,6 +78,7 @@ impl<'de> serde::Deserialize<'de> for CrateData {
 enum CrateDataVersions {
     V1_44(v1_44::CrateData),
     V1_52(v1_52::CrateData),
+    V1_69(v1_69::CrateData),
 }
 
 impl From<CrateDataVersions> for CrateData {
@@ -84,6 +86,7 @@ impl From<CrateDataVersions> for CrateData {
         match versions {
             CrateDataVersions::V1_44(data) => data.into(),
             CrateDataVersions::V1_52(data) => data.into(),
+            CrateDataVersions::V1_69(data) => data.into(),
         }
     }
 }
@@ -115,39 +118,13 @@ impl From<ItemType> for doc::ItemType {
 
 impl<'de> serde::Deserialize<'de> for ItemType {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use doc::ItemType;
+        use core::convert::TryInto;
         use serde::de::Error;
 
-        match u8::deserialize(deserializer)? {
-            0 => Ok(ItemType::Module),
-            1 => Ok(ItemType::ExternCrate),
-            2 => Ok(ItemType::Import),
-            3 => Ok(ItemType::Struct),
-            4 => Ok(ItemType::Enum),
-            5 => Ok(ItemType::Function),
-            6 => Ok(ItemType::Typedef),
-            7 => Ok(ItemType::Static),
-            8 => Ok(ItemType::Trait),
-            9 => Ok(ItemType::Impl),
-            10 => Ok(ItemType::TyMethod),
-            11 => Ok(ItemType::Method),
-            12 => Ok(ItemType::StructField),
-            13 => Ok(ItemType::Variant),
-            14 => Ok(ItemType::Macro),
-            15 => Ok(ItemType::Primitive),
-            16 => Ok(ItemType::AssocType),
-            17 => Ok(ItemType::Constant),
-            18 => Ok(ItemType::AssocConst),
-            19 => Ok(ItemType::Union),
-            20 => Ok(ItemType::ForeignType),
-            21 => Ok(ItemType::Keyword),
-            22 => Ok(ItemType::OpaqueTy),
-            23 => Ok(ItemType::ProcAttribute),
-            24 => Ok(ItemType::ProcDerive),
-            25 => Ok(ItemType::TraitAlias),
+        match u8::deserialize(deserializer)?.try_into() {
+            Ok(item) => Ok(Self(item)),
             _ => Err(D::Error::custom("Unexpected item type")),
         }
-        .map(Self)
     }
 }
 
@@ -183,8 +160,8 @@ impl Index {
             if finished {
                 use anyhow::Context;
                 let json = json.replace("\\'", "'");
-                let data: Data =
-                    serde_json::from_str(&json).context("Could not parse search index")?;
+                let data: Data = serde_json::from_str(&json)
+                    .context(format!("Could not parse search index of {}", &json))?;
 
                 Ok(Some(Index {
                     data,

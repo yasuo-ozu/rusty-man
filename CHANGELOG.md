@@ -8,6 +8,7 @@ SPDX-License-Identifier: MIT
 # Unreleased
 
 - Fix html parse method to support latest rustdoc
+- Add support for toolchain >= 1.69
 
 ## v0.5.0 (2021-10-26)
 
