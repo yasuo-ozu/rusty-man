@@ -46,7 +46,7 @@ impl From<CrateData> for super::CrateData {
                 .iter()
                 .cloned()
                 .enumerate()
-                .filter(|(i, s)| s.len() > 0)
+                .filter(|(_, s)| s.len() > 0)
                 .collect(),
             ItemPaths::Indexed(v) => v.iter().cloned().collect(),
         };
