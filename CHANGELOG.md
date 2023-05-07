@@ -5,6 +5,10 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
+## Unreleased
+
+- Add support for toolchain >= 1.69
+
 ## v0.5.0 (2021-10-26)
 
 This minor release adds support for Rust 1.54.0, 1.55.0 and 1.56.0 and bumps

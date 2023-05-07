@@ -69,6 +69,61 @@ pub enum ItemType {
     TraitAlias,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct ConvertError;
+
+impl core::fmt::Display for ConvertError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Convert error")
+    }
+}
+
+impl std::error::Error for ConvertError {}
+
+impl core::convert::TryFrom<char> for ItemType {
+    type Error = ConvertError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        use core::convert::TryInto;
+        Ok((value as u8 - 'A' as u8).try_into()?)
+    }
+}
+
+impl core::convert::TryFrom<u8> for ItemType {
+    type Error = ConvertError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ItemType::Module),
+            1 => Ok(ItemType::ExternCrate),
+            2 => Ok(ItemType::Import),
+            3 => Ok(ItemType::Struct),
+            4 => Ok(ItemType::Enum),
+            5 => Ok(ItemType::Function),
+            6 => Ok(ItemType::Typedef),
+            7 => Ok(ItemType::Static),
+            8 => Ok(ItemType::Trait),
+            9 => Ok(ItemType::Impl),
+            10 => Ok(ItemType::TyMethod),
+            11 => Ok(ItemType::Method),
+            12 => Ok(ItemType::StructField),
+            13 => Ok(ItemType::Variant),
+            14 => Ok(ItemType::Macro),
+            15 => Ok(ItemType::Primitive),
+            16 => Ok(ItemType::AssocType),
+            17 => Ok(ItemType::Constant),
+            18 => Ok(ItemType::AssocConst),
+            19 => Ok(ItemType::Union),
+            20 => Ok(ItemType::ForeignType),
+            21 => Ok(ItemType::Keyword),
+            22 => Ok(ItemType::OpaqueTy),
+            23 => Ok(ItemType::ProcAttribute),
+            24 => Ok(ItemType::ProcDerive),
+            25 => Ok(ItemType::TraitAlias),
+            _ => Err(ConvertError),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Doc {
     pub name: Fqn,
