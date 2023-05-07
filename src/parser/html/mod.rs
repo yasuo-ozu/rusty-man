@@ -54,7 +54,13 @@ impl Parser {
     }
 
     pub fn find_item(&self, item: &str) -> anyhow::Result<Option<String>> {
-        let item = select(&self.document, "ul.docblock li a")?
+        let block = select(&self.document, "ul.all-items li a")?;
+        let mut items = if block.iter.clone().count() > 0 {
+            block
+        } else {
+            select(&self.document, "ul.docblock li a")?
+        };
+        let item = items
             .find(|e| e.text_contents() == item)
             .and_then(|e| e.get_attribute("href"));
         Ok(item)
