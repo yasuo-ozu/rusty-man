@@ -65,17 +65,25 @@ fn main() -> anyhow::Result<()> {
     };
 
     if let Some(doc) = doc {
-        let viewer = args.viewer.unwrap_or_else(viewer::get_default);
-        if args.examples {
-            let examples = doc.find_examples()?;
-            anyhow::ensure!(
-                !examples.is_empty(),
-                "Could not find examples for {}",
-                &args.keyword
-            );
-            viewer.open_examples(sources, args.viewer_args, &doc, examples)
+        if args.open {
+            if let Some(url) = doc.url.as_ref() {
+                Ok(open::that(url)?)
+            } else {
+                anyhow::bail!("Cannot find html document");
+            }
         } else {
-            viewer.open(sources, args.viewer_args, &doc)
+            let viewer = args.viewer.unwrap_or_else(viewer::get_default);
+            if args.examples {
+                let examples = doc.find_examples()?;
+                anyhow::ensure!(
+                    !examples.is_empty(),
+                    "Could not find examples for {}",
+                    &args.keyword
+                );
+                viewer.open_examples(sources, args.viewer_args, &doc, examples)
+            } else {
+                viewer.open(sources, args.viewer_args, &doc)
+            }
         }
     } else {
         // item selection cancelled by user

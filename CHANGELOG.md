@@ -5,8 +5,9 @@ SPDX-License-Identifier: MIT
 
 # Changelog for rusty-man
 
-# Unreleased
+## Unreleased
 
+- Add --open option
 - Fix html parse method to support latest rustdoc
 - Add support for toolchain >= 1.69
 
