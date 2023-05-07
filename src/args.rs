@@ -54,6 +54,11 @@ pub struct Args {
     #[structopt(long)]
     pub no_default_sources: bool,
 
+    /// Open found page in web browser.
+    #[merge(strategy = merge::bool::overwrite_false)]
+    #[structopt(long)]
+    pub open: bool,
+
     /// Do not read the search index if there is no exact match
     ///
     /// Per default, rusty-man reads the search indexes of all sources and tries to find matching

@@ -76,6 +76,7 @@ pub struct Doc {
     pub description: Option<Text>,
     pub definition: Option<Code>,
     pub groups: collections::BTreeMap<ItemType, Vec<MemberGroup>>,
+    pub url: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -351,6 +352,7 @@ impl Doc {
             description: Default::default(),
             definition: Default::default(),
             groups: Default::default(),
+            url: None,
         }
     }
 
@@ -359,6 +361,24 @@ impl Doc {
             html::Parser::from_string(&description.html)?.find_examples()
         } else {
             Ok(Vec::new())
+        }
+    }
+
+    pub fn set_url(&mut self, path: &std::path::Path, hash: Option<String>) {
+        let mut path = path
+            .canonicalize()
+            .unwrap()
+            .as_os_str()
+            .to_string_lossy()
+            .to_string();
+        if path.starts_with("/") {
+            path = (&path[1..]).to_string();
+        }
+
+        if let Some(hash) = hash {
+            self.url = Some(format!("file:///{}#{}", path, hash));
+        } else {
+            self.url = Some(format!("file:///{}", path));
         }
     }
 }

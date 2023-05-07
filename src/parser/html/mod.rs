@@ -24,6 +24,7 @@ use util::NodeRefExt;
 
 pub struct Parser {
     document: kuchiki::NodeRef,
+    path: Option<path::PathBuf>,
 }
 
 impl Parser {
@@ -33,11 +34,14 @@ impl Parser {
         log::info!("Reading HTML from file '{}'", path.as_ref().display());
         let document = kuchiki::parse_html()
             .from_utf8()
-            .from_file(path)
+            .from_file(path.as_ref())
             .context("Could not read HTML file")?;
         log::info!("HTML file parsed successfully");
 
-        Ok(Parser { document })
+        Ok(Parser {
+            document,
+            path: Some(path.as_ref().to_owned()),
+        })
     }
 
     pub fn from_string(s: impl Into<String>) -> anyhow::Result<Parser> {
@@ -50,7 +54,10 @@ impl Parser {
             .context("Could not read HTML string")?;
         log::info!("HTML string parsed successfully");
 
-        Ok(Parser { document })
+        Ok(Parser {
+            document,
+            path: None,
+        })
     }
 
     pub fn find_item(&self, item: &str) -> anyhow::Result<Option<String>> {
@@ -94,6 +101,9 @@ impl Parser {
         let mut doc = doc::Doc::new(name.clone(), ty);
         doc.description = description.map(From::from);
         doc.definition = definition.map(From::from);
+        if let Some(path) = self.path.as_ref() {
+            doc.set_url(path, None);
+        }
 
         let members = vec![
             get_variants(&self.document, name)?,
@@ -113,7 +123,8 @@ impl Parser {
 
     pub fn parse_member_doc(&self, name: &doc::Fqn, ty: doc::ItemType) -> anyhow::Result<doc::Doc> {
         log::info!("Parsing member documentation for '{}'", name);
-        let heading = select_first(&self.document, &get_member_selector(ty, name.last()))?
+        let member_selector = get_member_selector(ty, name.last());
+        let heading = select_first(&self.document, &member_selector)?
             .with_context(|| format!("Could not find member {}", name))?;
 
         // Since Rust 1.54.0, the <code> element is replaced with a <h4 class="code-header">
@@ -139,6 +150,9 @@ impl Parser {
         let mut doc = doc::Doc::new(name.clone(), ty);
         doc.definition = Some(code.into());
         doc.description = docblock.map(From::from);
+        if let Some(path) = self.path.as_ref() {
+            doc.set_url(path, Some(member_selector));
+        }
         Ok(doc)
     }
 
@@ -148,6 +162,9 @@ impl Parser {
 
         let mut doc = doc::Doc::new(name.clone(), doc::ItemType::Module);
         doc.description = description.map(From::from);
+        if let Some(path) = self.path.as_ref() {
+            doc.set_url(path, None);
+        }
         for item_type in MODULE_MEMBER_TYPES {
             let mut group = doc::MemberGroup::new(None);
             group.members = get_members(&self.document, name, *item_type)?;
