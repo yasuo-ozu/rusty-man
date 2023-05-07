@@ -5,7 +5,9 @@
 //!
 //! This module contains data structures specific to the search index format introduced with Rust
 //! 1.69.0.
-//! This change is introduced in [PR #108013](https://github.com/rust-lang/rust/pull/108013)
+//! This change is introduced in [PR #108013](https://github.com/rust-lang/rust/pull/108013), [PR #107629](https://github.com/rust-lang/rust/pull/107629)
+
+use std::collections::HashMap;
 
 #[derive(Debug, Default, PartialEq, serde::Deserialize)]
 pub struct CrateData {
@@ -14,7 +16,7 @@ pub struct CrateData {
     #[serde(rename = "n")]
     item_names: Vec<String>,
     #[serde(rename = "q")]
-    item_paths: Vec<ItemPath>,
+    item_paths: ItemPaths,
     #[serde(rename = "d")]
     item_descs: Vec<String>,
     #[serde(rename = "i")]
@@ -25,35 +27,41 @@ pub struct CrateData {
 
 #[derive(Debug, PartialEq, serde::Deserialize)]
 #[serde(untagged)]
-pub enum ItemPath {
-    Str(String),
-    Tpl(usize, String),
+pub enum ItemPaths {
+    Raw(Vec<String>),
+    Indexed(Vec<(usize, String)>),
 }
 
-impl From<ItemPath> for String {
-    fn from(value: ItemPath) -> String {
-        match value {
-            ItemPath::Str(s) => s,
-            ItemPath::Tpl(_, s) => s,
-        }
+impl Default for ItemPaths {
+    fn default() -> Self {
+        Self::Indexed(Vec::new())
     }
 }
 
 impl From<CrateData> for super::CrateData {
     fn from(data: CrateData) -> Self {
         use core::convert::TryFrom;
+        let path_map: HashMap<usize, String> = match &data.item_paths {
+            ItemPaths::Raw(v) => v
+                .iter()
+                .cloned()
+                .enumerate()
+                .filter(|(i, s)| s.len() > 0)
+                .collect(),
+            ItemPaths::Indexed(v) => v.iter().cloned().collect(),
+        };
         let items = data
             .item_types
             .chars()
             .map(|c| crate::doc::ItemType::try_from(c).unwrap().into())
             .zip(data.item_names.into_iter())
-            .zip(data.item_paths.into_iter())
             .zip(data.item_descs.into_iter())
             .zip(data.item_parents.into_iter())
-            .map(|((((ty, name), path), desc), parent)| super::ItemData {
+            .enumerate()
+            .map(|(index, (((ty, name), desc), parent))| super::ItemData {
                 ty,
                 name,
-                path: path.into(),
+                path: path_map.get(&index).cloned().unwrap_or(String::new()),
                 desc,
                 parent: match parent {
                     0 => None,
