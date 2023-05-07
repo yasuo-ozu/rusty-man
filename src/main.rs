@@ -113,15 +113,37 @@ fn load_sources(sources: &[String], load_default_sources: bool) -> anyhow::Resul
 fn get_default_sources() -> Vec<path::PathBuf> {
     let mut default_sources = Vec::new();
 
-    let sysroot = get_sysroot().unwrap_or_else(|| path::PathBuf::from("/usr"));
-    default_sources.push(sysroot.join("share/doc/rust/html"));
-    default_sources.push(sysroot.join("share/doc/rust-doc/html"));
+    if let Some(rustup_doc) = get_rustup_doc() {
+        default_sources.push(rustup_doc)
+    } else {
+        let sysroot = get_sysroot().unwrap_or_else(|| path::PathBuf::from("/usr"));
+        default_sources.push(sysroot.join("share/doc/rust/html"));
+        default_sources.push(sysroot.join("share/doc/rust-doc/html"));
+    }
 
     let mut target_dir = get_target_dir();
     target_dir.push("doc");
     default_sources.push(target_dir);
 
     default_sources
+}
+
+fn get_rustup_doc() -> Option<path::PathBuf> {
+    use std::process::Command;
+    let output = Command::new("rustup")
+        .args(["doc", "--path"])
+        .output()
+        .ok()?;
+    if output.status.success() {
+        let mut ans: path::PathBuf = String::from_utf8(output.stdout).ok()?.parse().ok()?;
+        if ans.pop() {
+            Some(ans)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
 
 fn get_sysroot() -> Option<path::PathBuf> {
